@@ -45,7 +45,7 @@ def seed_props(db: Session) -> list[PropLine]:
 def test_health(client: TestClient):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "version": "0.3.0"}
+    assert response.json() == {"status": "ok", "version": "0.4.0"}
 
 
 def test_props_can_be_listed_and_filtered(client: TestClient, db_session: Session):

@@ -116,7 +116,7 @@ def _recommendation_response(recommendation: Recommendation) -> RecommendationRe
 
 @router.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
-    return HealthResponse(status="ok", version="0.3.0")
+    return HealthResponse(status="ok", version="0.4.0")
 
 
 @router.get("/props", response_model=list[PropResponse])

@@ -23,7 +23,7 @@ flowchart TD
 
 No layer logs into a sportsbook, scrapes restricted sites, or places wagers.
 
-## Current v0.3 modules
+## Current v0.4 modules
 
 ```mermaid
 flowchart LR
@@ -36,6 +36,8 @@ flowchart LR
         Providers[Provider Adapters]
         Persistence[Persistence Boundary]
         Services[Domain Services]
+        Scheduler[Optional APScheduler Loop]
+        Registry[Provider Registry]
         API[FastAPI Routers]
         CLI[Legacy CLI]
     end
@@ -48,6 +50,8 @@ flowchart LR
 
     OddsAPI --> Providers
     Mock --> Providers
+    Scheduler --> Registry
+    Registry --> Providers
     Providers --> CLI
     Providers --> Persistence
     Persistence --> ORM
