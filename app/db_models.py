@@ -21,6 +21,23 @@ class Player(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     prop_lines: Mapped[list["PropLine"]] = relationship(back_populates="player")
+    aliases: Mapped[list["PlayerAlias"]] = relationship(back_populates="player")
+
+
+class PlayerAlias(Base):
+    __tablename__ = "player_aliases"
+    __table_args__ = (
+        UniqueConstraint("provider", "normalized_alias", name="uq_player_alias_provider_name"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    player_id: Mapped[int] = mapped_column(ForeignKey("players.id"), index=True)
+    provider: Mapped[str] = mapped_column(String(80), index=True)
+    raw_alias: Mapped[str] = mapped_column(String(200))
+    normalized_alias: Mapped[str] = mapped_column(String(200), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    player: Mapped[Player] = relationship(back_populates="aliases")
 
 
 class Sportsbook(Base):
@@ -65,6 +82,11 @@ class PropLine(Base):
     side: Mapped[str] = mapped_column(String(20), index=True)
     line: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
     american_odds: Mapped[int]
+    provider_key: Mapped[str | None] = mapped_column(String(80), index=True)
+    raw_player_name: Mapped[str | None] = mapped_column(String(200))
+    snapshot_batch_id: Mapped[int | None] = mapped_column(
+        ForeignKey("odds_snapshot_batches.id"), index=True
+    )
     fair_market_probability: Mapped[Decimal | None] = mapped_column(Numeric(7, 6))
     captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
 
@@ -72,6 +94,7 @@ class PropLine(Base):
     player: Mapped[Player] = relationship(back_populates="prop_lines")
     sportsbook: Mapped[Sportsbook] = relationship(back_populates="prop_lines")
     projections: Mapped[list["Projection"]] = relationship(back_populates="prop_line")
+    snapshot_batch: Mapped["OddsSnapshotBatch | None"] = relationship(back_populates="prop_lines")
 
 
 class Projection(Base):
@@ -184,3 +207,58 @@ class Settlement(Base):
     settled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
 
     paper_bet: Mapped[PaperBet] = relationship(back_populates="settlement")
+
+
+class IngestionJob(Base):
+    __tablename__ = "ingestion_jobs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    correlation_id: Mapped[str] = mapped_column(String(36), unique=True, index=True)
+    provider: Mapped[str] = mapped_column(String(80), index=True)
+    status: Mapped[str] = mapped_column(String(30), index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    row_count: Mapped[int] = mapped_column(default=0)
+    attempt_count: Mapped[int] = mapped_column(default=0)
+    error_category: Mapped[str | None] = mapped_column(String(50))
+    error_message: Mapped[str | None] = mapped_column(Text)
+
+    snapshot_batch: Mapped["OddsSnapshotBatch | None"] = relationship(
+        back_populates="ingestion_job", uselist=False
+    )
+
+
+class ProviderHealth(Base):
+    __tablename__ = "provider_health"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    provider: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="HEALTHY", index=True)
+    last_successful_fetch: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_failed_fetch: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    consecutive_failures: Mapped[int] = mapped_column(default=0)
+    average_latency_ms: Mapped[Decimal] = mapped_column(Numeric(12, 3), default=0)
+    successful_fetches: Mapped[int] = mapped_column(default=0)
+    records_returned: Mapped[int] = mapped_column(default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class OddsSnapshotBatch(Base):
+    __tablename__ = "odds_snapshot_batches"
+    __table_args__ = (
+        Index("ix_snapshot_batches_provider_captured", "provider", "captured_at"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ingestion_job_id: Mapped[int] = mapped_column(
+        ForeignKey("ingestion_jobs.id"), unique=True, index=True
+    )
+    provider: Mapped[str] = mapped_column(String(80), index=True)
+    payload_hash: Mapped[str] = mapped_column(String(64), index=True)
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    row_count: Mapped[int] = mapped_column(default=0)
+    duplicate_suppressed: Mapped[bool] = mapped_column(Boolean, default=False)
+    quality_flags: Mapped[str] = mapped_column(Text, default="[]")
+
+    ingestion_job: Mapped[IngestionJob] = relationship(back_populates="snapshot_batch")
+    prop_lines: Mapped[list[PropLine]] = relationship(back_populates="snapshot_batch")

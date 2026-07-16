@@ -3,6 +3,8 @@ from app.models import Offer
 
 
 class OddsProvider(ABC):
+    key: str = "base"
+
     @abstractmethod
     async def fetch_nfl_player_props(self) -> list[Offer]:
         raise NotImplementedError

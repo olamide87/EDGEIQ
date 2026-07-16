@@ -23,6 +23,7 @@ SIDE_MAP = {
 
 
 class TheOddsAPIProvider(OddsProvider):
+    key = "theoddsapi"
     base_url = "https://api.the-odds-api.com/v4"
 
     async def fetch_nfl_player_props(self) -> list[Offer]:

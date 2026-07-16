@@ -213,3 +213,87 @@ class WRReceptionsProjectionResponse(BaseModel):
     push_probability: float
     assumptions_used: dict[str, float]
     captured_at: datetime
+
+
+class QualityFlagResponse(BaseModel):
+    category: str
+    message: str
+    record_index: int | None
+
+
+class IngestionRunRequest(BaseModel):
+    provider: str | None = None
+
+
+class IngestionRunResponse(BaseModel):
+    job_id: int
+    correlation_id: str
+    provider: str
+    status: str
+    row_count: int
+    duplicate_suppressed: bool
+    quality_flags: list[QualityFlagResponse]
+
+
+class IngestionJobResponse(BaseModel):
+    id: int
+    correlation_id: str
+    provider: str
+    status: str
+    started_at: datetime
+    ended_at: datetime | None
+    row_count: int
+    attempt_count: int
+    error_category: str | None
+    error_message: str | None
+
+
+class ProviderHealthResponse(BaseModel):
+    provider: str
+    status: str
+    last_successful_fetch: datetime | None
+    last_failed_fetch: datetime | None
+    consecutive_failures: int
+    average_latency_ms: float
+    successful_fetches: int
+    records_returned: int
+    updated_at: datetime
+
+
+class OddsHistoryResponse(PropResponse):
+    provider_key: str | None
+    raw_player_name: str | None
+    snapshot_batch_id: int | None
+
+
+class MovementPointResponse(BaseModel):
+    captured_at: datetime
+    line: float | None
+    american_odds: int
+    direction: str
+
+
+class ConsensusResponse(BaseModel):
+    median_line: float
+    median_implied_probability: float
+    books_contributing: int
+
+
+class OddsMovementResponse(BaseModel):
+    event_id: int
+    player_id: int
+    player_name: str
+    market: Market
+    side: Side
+    sportsbook_name: str
+    first_observed_line: float | None
+    first_observed_odds: int
+    latest_line: float | None
+    latest_odds: int
+    minimum_line: float | None
+    maximum_line: float | None
+    minimum_price: int
+    maximum_price: int
+    movements: list[MovementPointResponse]
+    sportsbook_moved_first: str | None
+    consensus: ConsensusResponse | None

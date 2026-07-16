@@ -24,6 +24,16 @@ class Settings(BaseSettings):
     confidence_injury_certainty_weight: float = 0.15
     confidence_matchup_certainty_weight: float = 0.10
     confidence_market_stability_weight: float = 0.15
+    ingestion_enabled: bool = False
+    ingestion_poll_interval_minutes: int = 15
+    provider_timeout_seconds: float = 30.0
+    provider_retry_count: int = 2
+    ingestion_stale_event_hours: int = 6
+    enabled_providers: str = "mock"
+
+    @property
+    def enabled_provider_keys(self) -> list[str]:
+        return [key.strip() for key in self.enabled_providers.split(",") if key.strip()]
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

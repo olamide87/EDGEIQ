@@ -4,16 +4,20 @@ from sqlalchemy.orm import Session
 from app.db_models import Event, Player, PropLine, Sportsbook
 from app.models import Offer
 from app.services.market_normalization import normalize_two_way_market
+from app.services.player_aliases import resolve_player
 
 
-def persist_offers(session: Session, offers: list[Offer]) -> list[PropLine]:
+def persist_offers(
+    session: Session,
+    offers: list[Offer],
+    *,
+    provider_key: str = "unknown",
+    snapshot_batch_id: int | None = None,
+) -> list[PropLine]:
     """Persist normalized provider offers without coupling providers to SQLAlchemy."""
     rows: list[PropLine] = []
     for offer in offers:
-        player = session.scalar(select(Player).where(Player.name == offer.player))
-        if player is None:
-            player = Player(name=offer.player)
-            session.add(player)
+        player = resolve_player(session, provider=provider_key, raw_name=offer.player)
 
         book_key = offer.bookmaker.casefold().replace(" ", "-")
         sportsbook = session.scalar(select(Sportsbook).where(Sportsbook.key == book_key))
@@ -39,6 +43,9 @@ def persist_offers(session: Session, offers: list[Offer]) -> list[PropLine]:
             side=offer.side.value,
             line=offer.line,
             american_odds=offer.american_odds,
+            provider_key=provider_key,
+            raw_player_name=offer.player,
+            snapshot_batch_id=snapshot_batch_id,
             captured_at=offer.captured_at,
         )
         session.add(row)

@@ -8,9 +8,9 @@ complete only when its behavior, migrations, tests, and documentation are shippe
 | v0.1 | Line Shopping | ✅ Complete |
 | v0.2 | API and Database | ✅ Complete |
 | v0.3 | Projection Quality and Paper Trading | ✅ Complete |
-| v0.4 | Automated Data Engine | 🚧 Next |
-| v0.5 | Machine Learning | Planned |
-| v0.6 | AI War Room | Planned |
+| v0.4 | Automated Data Engine | ✅ Complete |
+| v0.5 | Historical Data and WR Model Validation | Planned |
+| v0.6 | Machine Learning | Planned |
 | v0.7 | Dashboard | Planned |
 | v1.0 | Public Beta | Planned |
 
@@ -39,29 +39,31 @@ complete only when its behavior, migrations, tests, and documentation are shippe
 - Duplicate and correlated exposure controls
 - Baseline Poisson WR-receptions model
 
-## v0.4 — Automated Data Engine 🚧
+## v0.4 — Automated Data Engine ✅
 
-- Scheduled, idempotent ingestion jobs
+- Scheduled, idempotent odds ingestion jobs
 - Snapshot deduplication and provider health monitoring
-- Historical odds and closing-line datasets
-- Retry, backoff, rate-limit, and data-quality controls
-- Background-worker observability and operational runbooks
-- PostgreSQL CI and deployment-ready configuration
+- Historical odds, movement, and market-consensus endpoints
+- Retry, timeout, data-quality, alias, and observability controls
+- Optional in-process scheduler and one-shot execution
 
-## v0.5 — Machine Learning
+## v0.5 — Historical Data and WR Model Validation
 
-- Licensed historical feature pipeline
+- Evaluate and license historical NFL usage sources
+- Build canonical player, team, game, route, target, and reception datasets
+- Validate coverage, survivorship bias, corrections, and point-in-time availability
+- Establish the simple Poisson and market-implied probability baselines
 - Train/validation/test splits that respect season and time boundaries
-- Calibrated position-specific probability models
-- Baseline comparisons, experiment tracking, and model registry
-- Drift, calibration, and out-of-sample evaluation reports
+- Feature definitions for route participation, target share, TPRR, catch rate,
+  first-read share, quarterback context, opponent coverage, and game environment
+- Out-of-sample calibration, scoring, and economic-value evaluation before model expansion
 
-## v0.6 — AI War Room
+## v0.6 — Machine Learning
 
-- Evidence-linked research summaries
-- Injury, role, matchup, and market-movement review workspace
-- Human approval checkpoints for model and recommendation changes
-- Auditable prompts, sources, and generated analysis
+- Reproducible feature pipelines and experiment tracking
+- Calibrated WR-receptions probability models
+- Champion/challenger comparison against simple and market baselines
+- Drift monitoring, model registry, and guarded deployment
 
 ## v0.7 — Dashboard
 

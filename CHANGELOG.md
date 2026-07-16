@@ -2,6 +2,17 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [0.4.0] - 2026-07-15
+
+### Added
+
+- Authorized provider registry and configurable APScheduler ingestion loop
+- One-shot ingestion API and CLI with retries, correlation IDs, and structured logs
+- Ingestion jobs, provider health, snapshot batches, and unchanged-payload suppression
+- Data-quality flags and cross-provider player alias normalization
+- Historical odds, movement detection, and multi-book market consensus APIs
+- SQLite-safe v0.3-to-v0.4 migration and ingestion test coverage
+
 ## [0.3.0] - 2026-07-15
 
 ### Added

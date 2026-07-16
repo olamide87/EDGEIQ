@@ -4,6 +4,8 @@ from app.providers.base import OddsProvider
 
 
 class MockOddsProvider(OddsProvider):
+    key = "mock"
+
     async def fetch_nfl_player_props(self) -> list[Offer]:
         now = datetime.now(timezone.utc)
         return [

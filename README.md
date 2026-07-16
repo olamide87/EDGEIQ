@@ -1,9 +1,9 @@
-# EDGE IQ v0.3
+# EDGE IQ v0.4
 
 EDGE IQ is a typed, local-first research application for NFL player-prop line
-shopping, projection review, and paper-trading analytics. v0.3 adds fair-market
-normalization, weighted confidence, data freshness, closing-line value (CLV),
-settlement, performance reporting, and an explicitly baseline WR-receptions model.
+shopping, scheduled authorized-odds ingestion, projection review, and paper-trading
+analytics. v0.4 adds provider registration, idempotent snapshots, provider health,
+data-quality checks, player aliases, odds movement, and market consensus.
 
 EDGE IQ does not scrape sportsbook sites, automate logins, place wagers, or claim
 that any model or recommendation will be profitable. The Odds API remains the only
@@ -27,8 +27,8 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-For an existing v0.2 database, `alembic upgrade head` is required before starting
-v0.3. Swagger is available at `http://127.0.0.1:8000/docs`.
+For an existing database, `alembic upgrade head` is required before starting v0.4.
+Swagger is available at `http://127.0.0.1:8000/docs`.
 
 ## API
 
@@ -45,6 +45,53 @@ v0.3. Swagger is available at `http://127.0.0.1:8000/docs`.
 | `POST` | `/paper-bets/{id}/close` | Record the closing market and CLV |
 | `POST` | `/paper-bets/{id}/settle` | Grade a paper bet as win, loss, or push |
 | `GET` | `/performance` | Aggregate and segmented paper performance |
+| `POST` | `/ingestion/run` | Run one authorized provider or all enabled providers once |
+| `GET` | `/ingestion/jobs` | Ingestion audit history and categorized failures |
+| `GET` | `/providers/health` | Provider latency, records, failures, and health state |
+| `GET` | `/odds/history` | Filterable persisted snapshot history |
+| `GET` | `/odds/movements` | Contract movement and multi-book consensus |
+
+## Automated ingestion
+
+Provider adapters remain behind the original `OddsProvider` interface and are
+registered by key. The built-in registry contains `mock` and `theoddsapi`; future
+adapters must use licensed or authorized sources. No sportsbook, PrizePicks, Sleeper,
+or Underdog scraping is included.
+
+Run one ingestion locally:
+
+```bash
+python -m app.cli ingest-once --provider mock
+python -m app.cli provider-health
+```
+
+Or call the API:
+
+```bash
+curl -X POST http://127.0.0.1:8000/ingestion/run \
+  -H "Content-Type: application/json" \
+  -d '{"provider":"mock"}'
+```
+
+Each execution records a correlation ID, start/end time, attempts, provider, status,
+row count, categorized error, health metrics, payload hash, and quality flags.
+Payload hashes exclude capture time and suppress a consecutive unchanged response
+without deleting its audit batch.
+
+Set `INGESTION_ENABLED=true` to start the in-process APScheduler loop with FastAPI.
+It is disabled by default, and tests explicitly prevent background startup. The
+in-process scheduler is suitable for one local API instance. A multi-instance or
+production deployment should move the same `IngestionService` jobs to Celery, RQ,
+a managed cloud scheduler, or another distributed executor with a shared lock.
+
+Quality checks flag malformed payloads, missing names, unsupported markets, invalid
+odds, stale events, duplicate contracts, alias variations, and impossible lines.
+Raw provider player names are retained while canonical players are resolved through
+provider-specific alias records.
+
+Market consensus uses the latest observation from each independent sportsbook and
+returns median line and median implied probability only when at least two books
+contribute.
 
 Legacy v0.2 projection payloads remain valid. A richer request can include input
 freshness and confidence components:
@@ -167,6 +214,12 @@ Every odds row and model request carries `captured_at` data.
 | `FRESH_DATA_SECONDS` / `STALE_DATA_SECONDS` | `900` / `3600` |
 | `MAX_WEEKLY_EXPOSURE` | `50` |
 | `MAX_PLAYER_EXPOSURE` / `MAX_EVENT_EXPOSURE` | `15` / `20` |
+| `INGESTION_ENABLED` | `false` |
+| `INGESTION_POLL_INTERVAL_MINUTES` | `15` |
+| `PROVIDER_TIMEOUT_SECONDS` | `30` |
+| `PROVIDER_RETRY_COUNT` | `2` |
+| `INGESTION_STALE_EVENT_HOURS` | `6` |
+| `ENABLED_PROVIDERS` | `mock` |
 
 The six confidence weights are independently configurable and normalized by their
 sum. For PostgreSQL, install a compatible driver and set a
