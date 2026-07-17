@@ -30,10 +30,17 @@ class Settings(BaseSettings):
     provider_retry_count: int = 2
     ingestion_stale_event_hours: int = 6
     enabled_providers: str = "mock"
+    nfl_seasons: str = "2021,2022,2023,2024,2025"
+    nfl_data_dir: str = "data"
+    nfl_cache_dir: str = "data/raw/nflverse"
 
     @property
     def enabled_provider_keys(self) -> list[str]:
         return [key.strip() for key in self.enabled_providers.split(",") if key.strip()]
+
+    @property
+    def configured_nfl_seasons(self) -> list[int]:
+        return sorted({int(value.strip()) for value in self.nfl_seasons.split(",") if value.strip()})
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

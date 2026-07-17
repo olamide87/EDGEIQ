@@ -1,0 +1,14 @@
+model: wr_receptions
+version: 0.1.0
+features: []
+training_window: null
+validation_window:
+  strategy: expanding_time
+  final_holdout: latest_complete_season
+metrics:
+  primary: calibration_error
+  required: [mae, rmse, bias, poisson_deviance, brier_score, log_loss]
+calibration_results: null
+promotion_status: NOT_TRAINED
+artifact_location: null
+last_training_date: null

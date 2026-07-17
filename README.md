@@ -1,9 +1,9 @@
-# EDGE IQ v0.4
+# EDGE IQ v0.5A
 
 EDGE IQ is a typed, local-first research application for NFL player-prop line
 shopping, scheduled authorized-odds ingestion, projection review, and paper-trading
-analytics. v0.4 adds provider registration, idempotent snapshots, provider health,
-data-quality checks, player aliases, odds movement, and market consensus.
+analytics. v0.5A adds an offline-testable nflverse adapter, season-partitioned local cache,
+source manifests, player normalization, and a deterministic WR player-game table.
 
 EDGE IQ does not scrape sportsbook sites, automate logins, place wagers, or claim
 that any model or recommendation will be profitable. The Odds API remains the only
@@ -27,8 +27,33 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-For an existing database, `alembic upgrade head` is required before starting v0.4.
+For a database already managed by Alembic, run `alembic upgrade head` before starting.
+The legacy local `data/edgeiq.db` may contain application-created tables without a
+revision stamp. Do not stamp, delete, or upgrade that file casually; back up and
+handle it through a separate migration decision. v0.5A schema validation uses a
+fresh ignored SQLite database. See [database migration notes](docs/database-migrations.md).
 Swagger is available at `http://127.0.0.1:8000/docs`.
+
+## Historical NFL data pipeline
+
+Downloaded data and processed datasets are ignored by Git. The commands below use
+`nflreadpy`; they require internet access and must be run only for datasets whose
+license and intended use have been reviewed.
+
+```text
+python -m app.cli data-download --seasons 2021 2022 2023 2024 2025 --datasets player_stats schedules rosters weekly_rosters snap_counts participation injuries depth_charts
+python -m app.cli data-manifest
+python -m app.cli build-wr-dataset --seasons 2021 2022 2023 2024 2025
+```
+
+Play-by-play is supported but omitted from the default cache because it is much
+larger and is not needed to produce the v0.5A table. Tests inject tiny synthetic CSV
+fixtures and make no network calls. See [research/README.md](research/README.md) and
+[data-source attribution](docs/data-sources.md).
+
+v0.5A does not train a model. Feature engineering, simple baselines, and learned
+models are separate v0.5B–D promotion gates. nflverse does not provide historical
+player-prop odds, and projection accuracy does not establish betting profitability.
 
 ## API
 

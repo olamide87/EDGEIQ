@@ -2,6 +2,21 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [0.5.0-alpha.1] - Unreleased
+
+### Added
+
+- Typed nflreadpy/nflverse adapter for nine historical dataset families
+- Ignored season-partitioned Parquet cache and hash-verified source manifests
+- Deterministic, normalized one-row-per-WR-game training-table generator
+- Offline synthetic fixtures and a two-run reproducibility validator
+- Feature/model registry scaffolding and architecture decision records
+
+### Scope
+
+- No feature computation, model fitting, public training API, or wagering execution
+- Polars and nflreadpy only; model dependencies are deferred to v0.5D
+
 ## [0.4.0] - 2026-07-15
 
 ### Added

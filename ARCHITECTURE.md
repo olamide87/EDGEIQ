@@ -23,7 +23,32 @@ flowchart TD
 
 No layer logs into a sportsbook, scrapes restricted sites, or places wagers.
 
-## Current v0.4 modules
+## v0.5 research pipeline
+
+```mermaid
+flowchart LR
+    NFL[nflverse via nflreadpy] --> Raw[Ignored raw cache]
+    Raw --> Manifest[Versioned manifests]
+    Raw --> Normalize[Player and game normalization]
+    Normalize --> Table[Player-game training table]
+    Table --> Features[Point-in-time feature store]
+    Features --> Baselines[Simple baselines]
+    Baselines --> Models[Learned count models]
+    Models --> Validate[Time-based validation]
+    Validate --> Registry[Model registry]
+    Registry --> API[Read-only model metadata / API]
+```
+
+The stages are promotion gates, not one combined build. v0.5A ends at the training
+table. Feature computation begins in v0.5B, baseline evaluation in v0.5C, and
+learned models in v0.5D.
+
+Calibration error is the primary model-quality KPI. ROI and win percentage are not
+model-promotion metrics. No model artifact becomes eligible for production use
+without a reproducible dataset, point-in-time feature audit, chronological holdout,
+and calibration report.
+
+## Current application modules
 
 ```mermaid
 flowchart LR
@@ -87,6 +112,7 @@ sequenceDiagram
 
 ```text
 app/
+|-- research/        Historical-data pipeline and reproducibility contracts
 |-- providers/       Authorized and mock odds-feed adapters
 |-- services/        Projection, confidence, EV, CLV, and risk rules
 |-- api.py           Prop, projection, and recommendation endpoints
@@ -97,6 +123,9 @@ app/
 `-- main.py          FastAPI composition root
 
 alembic/             Versioned database migrations
+feature_store/       Typed feature definitions and leakage decisions
+model_registry/      Versioned model metadata; generated artifacts remain ignored
+docs/decisions/      Architecture Decision Records (ADRs)
 tests/               Unit, persistence, migration-adjacent, and endpoint tests
 data/                Ignored local runtime data; only .gitkeep is tracked
 ```
@@ -109,6 +138,11 @@ variables and `pydantic-settings`.
 SQLite is the local default. Portable SQLAlchemy types and migration discipline keep
 PostgreSQL adoption straightforward, though PostgreSQL must receive its own CI matrix
 before production use.
+
+The legacy local `data/edgeiq.db` is not assumed to be revision-stamped. It must not
+be stamped or mutated as part of v0.5A; clean-database Alembic validation is used
+instead. Reconciliation is deferred to a dedicated migration decision documented in
+[`docs/database-migrations.md`](docs/database-migrations.md).
 
 ## Engineering principles
 

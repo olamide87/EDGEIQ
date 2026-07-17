@@ -32,6 +32,11 @@ pip-wheel-metadata/
 # Runtime databases, snapshots, and logs
 data/*
 !data/.gitkeep
+artifacts/
+research/reports/*
+!research/reports/.gitkeep
+.pytest_run/
+.pytest_tmp/
 *.db
 *.db-shm
 *.db-wal
