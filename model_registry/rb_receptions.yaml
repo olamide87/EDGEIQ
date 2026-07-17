@@ -1,0 +1,12 @@
+model: rb_receptions
+version: 0.0.0
+features: []
+training_window: null
+validation_window: null
+metrics:
+  primary: calibration_error
+  required: []
+calibration_results: null
+promotion_status: NOT_SCHEDULED
+artifact_location: null
+last_training_date: null

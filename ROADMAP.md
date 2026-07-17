@@ -1,92 +1,70 @@
 # EDGE IQ roadmap
 
-This roadmap communicates product direction, not fixed delivery dates. A release is
-complete only when its behavior, migrations, tests, and documentation are shipped.
+This roadmap communicates product direction, not fixed delivery dates. Model
+complexity is earned through reproducibility and held-out evidence.
 
 | Release | Theme | Status |
 | --- | --- | --- |
-| v0.1 | Line Shopping | ✅ Complete |
-| v0.2 | API and Database | ✅ Complete |
-| v0.3 | Projection Quality and Paper Trading | ✅ Complete |
-| v0.4 | Automated Data Engine | ✅ Complete |
-| v0.5 | Historical Data and WR Model Validation | Planned |
-| v0.6 | Machine Learning | Planned |
+| v0.1 | Line Shopping | Complete |
+| v0.2 | API and Database | Complete |
+| v0.3 | Projection Quality and Paper Trading | Complete |
+| v0.4 | Automated Data Engine | Complete |
+| v0.5A | Reproducible Data Pipeline | In progress — highest priority |
+| v0.5B | WR Feature Engineering | Blocked by v0.5A |
+| v0.5C | Baseline Models | Blocked by v0.5B |
+| v0.5D | First ML Models | Blocked by v0.5C |
+| v0.6 | Expanded Intelligence | Planned |
 | v0.7 | Dashboard | Planned |
 | v1.0 | Public Beta | Planned |
 
-## v0.1 — Line Shopping ✅
+## v0.5 promotion sequence
 
-- Normalized player-prop offers
-- Threshold-first line comparison
-- American-odds math
-- Mock data and The Odds API provider
-- CLI and JSONL snapshots
+```mermaid
+flowchart LR
+    A[v0.5A<br/>Reproducible data] --> B[v0.5B<br/>Leakage-safe features]
+    B --> C[v0.5C<br/>Simple baselines]
+    C --> D[v0.5D<br/>First learned models]
+```
 
-## v0.2 — API and Database ✅
+### v0.5A — Reproducible Data Pipeline
 
-- FastAPI and OpenAPI documentation
-- SQLAlchemy 2.x persistence
-- SQLite development database and Alembic migrations
-- Players, events, sportsbooks, prop lines, projections, and recommendations
-- Expected-value service and paper bankroll rules
+Build the `nflreadpy`/nflverse adapter, ignored local cache, source manifests,
+canonical player mapping, tiny offline fixtures, and one-row-per-WR-game training
+table generator. The milestone exits only when the same inputs and configuration
+regenerate identical dataset and manifest hashes while retaining capture timestamps.
 
-## v0.3 — Projection Quality and Paper Trading ✅
+### v0.5B — WR Feature Engineering
 
-- Proportional vig removal for complete two-way markets
-- Weighted confidence and freshness policy
-- Best-line selection before expected-value calculation
-- Paper-bet, closing-line, settlement, CLV, and performance analytics
-- Duplicate and correlated exposure controls
-- Baseline Poisson WR-receptions model
+Build the shared feature store. Every candidate feature records its source,
+lookback, point-in-time availability, leakage risk, formula, missing-data policy,
+and Keep/Modify/Discard decision. Same-game outcome information is prohibited.
 
-## v0.4 — Automated Data Engine ✅
+### v0.5C — Baseline Models
 
-- Scheduled, idempotent odds ingestion jobs
-- Snapshot deduplication and provider health monitoring
-- Historical odds, movement, and market-consensus endpoints
-- Retry, timeout, data-quality, alias, and observability controls
-- Optional in-process scheduler and one-shot execution
+Evaluate previous-game, rolling three-game, rolling five-game, season-to-date, and
+Poisson opportunity baselines on chronological held-out data. Calibration error is
+the primary probability metric. A learned model is not justified until these
+baselines are stable and reproducible.
 
-## v0.5 — Historical Data and WR Model Validation
+### v0.5D — First ML Models
 
-- Evaluate and license historical NFL usage sources
-- Build canonical player, team, game, route, target, and reception datasets
-- Validate coverage, survivorship bias, corrections, and point-in-time availability
-- Establish the simple Poisson and market-implied probability baselines
-- Train/validation/test splits that respect season and time boundaries
-- Feature definitions for route participation, target share, TPRR, catch rate,
-  first-read share, quarterback context, opponent coverage, and game environment
-- Out-of-sample calibration, scoring, and economic-value evaluation before model expansion
+Evaluate Poisson regression, negative-binomial regression, and Ridge regression
+against the v0.5C baselines with expanding-time validation. No neural networks.
+Promotion requires a meaningful held-out improvement and acceptable calibration,
+not a favorable in-sample result.
 
-## v0.6 — Machine Learning
+## Later releases
 
-- Reproducible feature pipelines and experiment tracking
-- Calibrated WR-receptions probability models
-- Champion/challenger comparison against simple and market baselines
-- Drift monitoring, model registry, and guarded deployment
-
-## v0.7 — Dashboard
-
-- Responsive line-shopping and recommendation views
-- Projection and confidence explainability
-- Paper bankroll, exposure, CLV, and performance dashboards
-- Operational status and data-freshness monitoring
-
-## v1.0 — Public Beta
-
-- Stable, versioned public API contracts
-- Security, privacy, licensing, and responsible-use review
-- Production PostgreSQL, backups, monitoring, and incident response
-- User documentation and onboarding
-- Explicit beta limitations and feedback process
+- v0.6 expands only validated model families and consumers.
+- v0.7 adds research, calibration, feature, and paper-performance dashboards.
+- v1.0 completes stable API, security, licensing, PostgreSQL, and operations work.
 
 ## Release discipline
 
-EDGE IQ uses semantic versioning while pre-1.0 releases are allowed to evolve quickly.
-Every release should include:
-
-- A versioned Alembic migration when persistence changes
-- Passing tests and schema-drift checks in CI
-- Updated API and architecture documentation
-- A changelog entry and migration notes
-- No committed secrets, local databases, or generated odds snapshots
+- Version data, feature definitions, model metadata, and experiment decisions.
+- Keep raw data, processed datasets, and model artifacts out of Git.
+- Use licensed or authorized sources and preserve their attribution.
+- Use chronological validation; never random-split player-game rows.
+- Treat calibration error as the primary dashboard model-quality measure.
+- Keep all recommendations paper-only and make no profitability claims.
+- Require passing tests, compilation, migration, and schema-drift checks before merge.
