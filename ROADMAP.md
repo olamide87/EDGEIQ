@@ -9,8 +9,8 @@ complexity is earned through reproducibility and held-out evidence.
 | v0.2 | API and Database | Complete |
 | v0.3 | Projection Quality and Paper Trading | Complete |
 | v0.4 | Automated Data Engine | Complete |
-| v0.5A | Reproducible Data Pipeline | In progress — highest priority |
-| v0.5B | WR Feature Engineering | Blocked by v0.5A |
+| v0.5A | Reproducible Data Pipeline | Complete |
+| v0.5B | WR Feature Engineering | Next |
 | v0.5C | Baseline Models | Blocked by v0.5B |
 | v0.5D | First ML Models | Blocked by v0.5C |
 | v0.6 | Expanded Intelligence | Planned |
