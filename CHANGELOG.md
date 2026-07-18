@@ -2,7 +2,22 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
-## [0.5.0-alpha.1] - Unreleased
+## [0.5.0-alpha.2] - Unreleased
+
+### Added
+
+- Typed v1 WR feature registry with availability, missingness, and leakage contracts
+- Deterministic point-in-time player, usage, team, opponent, and game features
+- Versioned feature table, canonical content hash, atomic Parquet output, and manifest
+- Feature registry/build/validation CLI commands and an offline feature-audit script
+- Leakage, ordering, season-boundary, trade, rookie, missingness, and hash tests
+
+### Scope
+
+- Candidate features only; no fitting, baseline evaluation, calibration, or backtesting
+- No scikit-learn, statsmodels, or other model-training dependencies
+
+## [0.5.0-alpha.1]
 
 ### Added
 

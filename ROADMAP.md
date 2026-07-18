@@ -10,7 +10,7 @@ complexity is earned through reproducibility and held-out evidence.
 | v0.3 | Projection Quality and Paper Trading | Complete |
 | v0.4 | Automated Data Engine | Complete |
 | v0.5A | Reproducible Data Pipeline | Complete |
-| v0.5B | WR Feature Engineering | Next |
+| v0.5B | WR Feature Engineering | In Progress |
 | v0.5C | Baseline Models | Blocked by v0.5B |
 | v0.5D | First ML Models | Blocked by v0.5C |
 | v0.6 | Expanded Intelligence | Planned |
@@ -37,7 +37,9 @@ regenerate identical dataset and manifest hashes while retaining capture timesta
 
 Build the shared feature store. Every candidate feature records its source,
 lookback, point-in-time availability, leakage risk, formula, missing-data policy,
-and Keep/Modify/Discard decision. Same-game outcome information is prohibited.
+and future Keep/Modify/Discard decision. Same-game outcome information is prohibited.
+Implementation creates candidates and audits only; no feature is promoted before
+v0.5C/v0.5D evidence.
 
 ### v0.5C — Baseline Models
 

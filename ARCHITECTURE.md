@@ -40,8 +40,15 @@ flowchart LR
 ```
 
 The stages are promotion gates, not one combined build. v0.5A ends at the training
-table. Feature computation begins in v0.5B, baseline evaluation in v0.5C, and
+table. v0.5B computes versioned point-in-time candidates, baseline evaluation begins in v0.5C, and
 learned models in v0.5D.
+
+v0.5B separates identifiers, metadata, enabled feature candidates, and the target.
+All outcome-derived histories are updated only after a complete game is
+materialized. Stable player IDs preserve history through trades. Player rolling
+history carries across seasons; season-to-date, team, and opponent histories reset.
+The canonical content hash is the durable table identity, while a Parquet hash
+identifies exact bytes for the pinned Polars environment.
 
 Calibration error is the primary model-quality KPI. ROI and win percentage are not
 model-promotion metrics. No model artifact becomes eligible for production use
@@ -112,7 +119,7 @@ sequenceDiagram
 
 ```text
 app/
-|-- research/        Historical-data pipeline and reproducibility contracts
+|-- research/        Historical-data and point-in-time feature contracts
 |-- providers/       Authorized and mock odds-feed adapters
 |-- services/        Projection, confidence, EV, CLV, and risk rules
 |-- api.py           Prop, projection, and recommendation endpoints
@@ -123,7 +130,7 @@ app/
 `-- main.py          FastAPI composition root
 
 alembic/             Versioned database migrations
-feature_store/       Typed feature definitions and leakage decisions
+feature_store/       Typed candidate definitions, missing policies, and leakage decisions
 model_registry/      Versioned model metadata; generated artifacts remain ignored
 docs/decisions/      Architecture Decision Records (ADRs)
 tests/               Unit, persistence, migration-adjacent, and endpoint tests
