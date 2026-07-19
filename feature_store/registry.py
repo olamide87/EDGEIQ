@@ -194,17 +194,17 @@ def _rolling_history_features() -> list[FeatureDefinition]:
 
 def _context_features() -> list[FeatureDefinition]:
     features: list[FeatureDefinition] = []
-    for metric, label in (
-        ("team_pass_attempts", "team pass attempts"),
-        ("team_completions", "team completions"),
-        ("team_pass_rate", "team pass rate"),
-        ("team_target_concentration", "team WR target concentration"),
+    for metric, label, source_columns in (
+        ("team_pass_attempts", "team pass attempts", ("attempts",)),
+        ("team_completions", "team completions", ("completions",)),
+        ("team_completion_rate", "team completion rate", ("completions", "attempts")),
+        ("team_target_concentration", "team WR target concentration", ("targets",)),
     ):
         for window in (3, 5):
             features.append(_feature(
                 f"{metric}_roll{window}",
                 f"Mean {label} over prior games in the same season.",
-                "player_stats", ("attempts", "completions", "targets"),
+                "player_stats", source_columns,
                 f"team rolling_mean(shift({metric}, 1), window={window})",
                 grain=EntityGrain.TEAM_GAME,
                 lookback=window,

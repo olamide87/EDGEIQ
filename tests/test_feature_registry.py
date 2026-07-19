@@ -39,6 +39,10 @@ def test_feature_registry_documents_scope_and_excludes_leakage():
     assert by_name["team_plays_roll3"].missing_value_policy is MissingValuePolicy.NOT_AVAILABLE
     assert by_name["games_played_before"].source_dataset == "wr_player_game"
     assert by_name["has_prior_history"].source_columns == ("game_id",)
+    assert "team_completion_rate_roll3" in by_name
+    assert "team_completion_rate_roll5" in by_name
+    assert "team_pass_rate_roll3" not in by_name
+    assert by_name["team_completion_rate_roll3"].source_columns == ("completions", "attempts")
     assert "same_game_targets" not in MODEL_FEATURE_NAMES
     assert "team_plays_roll3" not in MODEL_FEATURE_NAMES
 

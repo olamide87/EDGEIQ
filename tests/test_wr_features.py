@@ -98,6 +98,7 @@ def test_shifted_rolling_cumulative_target_share_and_opponent_features():
     assert game_two["games_played_before"] == 1
     assert game_two["target_share_roll3"] == pytest.approx(7 / 30)
     assert game_two["team_pass_attempts_roll3"] == 30
+    assert game_two["team_completion_rate_roll3"] == pytest.approx(20 / 30)
     assert game_two["opponent_pass_attempts_allowed_roll3"] == 30
     assert game_two["opponent_wr_targets_allowed_roll3"] == 7
 

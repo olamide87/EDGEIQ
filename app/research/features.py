@@ -293,7 +293,7 @@ def build_wr_feature_table(
         pl.when(pl.col("attempts") > 0)
         .then(pl.col("completions") / pl.col("attempts"))
         .otherwise(None)
-        .alias("team_pass_rate")
+        .alias("team_completion_rate")
     )
     team_context = {
         (int(row["season"]), str(row["game_id"]), str(row["team"])): row
@@ -376,8 +376,8 @@ def build_wr_feature_table(
                 features[f"team_completions_roll{window}"] = _mean(
                     [item["completions"] for item in team_prior], window
                 )
-                features[f"team_pass_rate_roll{window}"] = _mean(
-                    [item["team_pass_rate"] for item in team_prior], window
+                features[f"team_completion_rate_roll{window}"] = _mean(
+                    [item["team_completion_rate"] for item in team_prior], window
                 )
                 features[f"team_target_concentration_roll{window}"] = _mean(
                     [item["team_target_concentration"] for item in team_prior], window
@@ -433,7 +433,7 @@ def build_wr_feature_table(
             offense_update = {
                 "attempts": _number(context["attempts"]),
                 "completions": _number(context["completions"]),
-                "team_pass_rate": _number(context["team_pass_rate"]),
+                "team_completion_rate": _number(context["team_completion_rate"]),
                 "team_target_concentration": _number(context["team_target_concentration"]),
             }
             team_history[(season, team)].append(offense_update)
