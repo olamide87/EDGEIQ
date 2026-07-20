@@ -1,5 +1,7 @@
 model: wr_receptions
 version: 0.1.0
+governance_version: "1.0"
+evaluation_protocol_version: "1.0"
 features: []
 candidate_feature_registry: wr-receptions-features-v1
 training_window: null
@@ -7,9 +9,18 @@ validation_window:
   strategy: expanding_time
   final_holdout: latest_complete_season
 metrics:
-  primary: calibration_error
-  required: [mae, rmse, bias, poisson_deviance, brier_score, log_loss]
+  primary_error: mean_absolute_error
+  calibration: expected_calibration_error
+  distribution: mean_poisson_deviance
+  diagnostic:
+    [root_mean_squared_error, signed_bias, prediction_coverage,
+     prediction_variance, sample_count]
 calibration_results: null
-promotion_status: NOT_TRAINED
+baseline_scorecard:
+  schema_version: "1.0"
+  status: NOT_EVALUATED_ON_HISTORICAL_DATA
+  strongest_eligible_baseline: null
+  scorecard_hash: null
+promotion_status: BASELINE_RESEARCH
 artifact_location: null
 last_training_date: null
