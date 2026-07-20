@@ -10,6 +10,7 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 class FeatureTiming(StrEnum):
     PREGAME = "pregame"
     LAGGED = "lagged"
+    POSTGAME = "postgame"
 
 
 class LeakageRisk(StrEnum):
@@ -138,11 +139,11 @@ def _feature(
         lookback_games=lookback,
         minimum_history=minimum_history,
         availability_timing=timing,
-        availability_timestamp=(
-            "after_prior_game_final_and_before_current_kickoff"
-            if timing is FeatureTiming.LAGGED
-            else "before_current_kickoff"
-        ),
+        availability_timestamp={
+            FeatureTiming.LAGGED: "after_prior_game_final_and_before_current_kickoff",
+            FeatureTiming.PREGAME: "before_current_kickoff",
+            FeatureTiming.POSTGAME: "after_current_game_final",
+        }[timing],
         missing_value_policy=missing,
         leakage_risk=risk,
         enabled=enabled,
@@ -210,17 +211,25 @@ def _context_features() -> list[FeatureDefinition]:
                 lookback=window,
                 carry_across_seasons=False,
             ))
-    for metric, label in (
-        ("opponent_pass_attempts_allowed", "opponent pass attempts allowed"),
-        ("opponent_completions_allowed", "opponent completions allowed"),
-        ("opponent_wr_receptions_allowed", "opponent WR receptions allowed"),
-        ("opponent_wr_targets_allowed", "opponent WR targets allowed"),
+    for metric, label, source_columns in (
+        ("opponent_pass_attempts_allowed", "opponent pass attempts allowed", ("attempts", "opponent")),
+        ("opponent_completions_allowed", "opponent completions allowed", ("completions", "opponent")),
+        (
+            "opponent_wr_receptions_allowed",
+            "opponent WR receptions allowed",
+            ("position", "receptions", "opponent"),
+        ),
+        (
+            "opponent_wr_targets_allowed",
+            "opponent WR targets allowed",
+            ("position", "targets", "opponent"),
+        ),
     ):
         for window in (3, 5):
             features.append(_feature(
                 f"{metric}_roll{window}",
                 f"Mean {label} over the opponent's prior games in the same season.",
-                "player_stats", ("attempts", "completions", "receptions", "targets"),
+                "player_stats + wr_player_game", source_columns,
                 f"defense rolling_mean(shift({metric}, 1), window={window})",
                 grain=EntityGrain.OPPONENT_GAME,
                 lookback=window,
@@ -355,7 +364,7 @@ FEATURE_REGISTRY: tuple[FeatureDefinition, ...] = tuple([
         "same_game_targets",
         "Current-game targets, documented only as a prohibited leakage example.",
         "player_stats", ("targets",), "prohibited current-game value",
-        timing=FeatureTiming.PREGAME, lookback=0, minimum_history=0,
+        timing=FeatureTiming.POSTGAME, lookback=0, minimum_history=0,
         risk=LeakageRisk.HIGH, enabled=False, missing=MissingValuePolicy.LEAVE_NULL,
     ),
 ])

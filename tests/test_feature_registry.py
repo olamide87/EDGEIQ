@@ -43,6 +43,33 @@ def test_feature_registry_documents_scope_and_excludes_leakage():
     assert "team_completion_rate_roll5" in by_name
     assert "team_pass_rate_roll3" not in by_name
     assert by_name["team_completion_rate_roll3"].source_columns == ("completions", "attempts")
+    assert by_name["opponent_pass_attempts_allowed_roll3"].source_columns == (
+        "attempts",
+        "opponent",
+    )
+    assert by_name["opponent_completions_allowed_roll3"].source_columns == (
+        "completions",
+        "opponent",
+    )
+    assert by_name["opponent_wr_receptions_allowed_roll3"].source_columns == (
+        "position",
+        "receptions",
+        "opponent",
+    )
+    assert by_name["opponent_wr_targets_allowed_roll3"].source_columns == (
+        "position",
+        "targets",
+        "opponent",
+    )
+    for name in (
+        "opponent_pass_attempts_allowed_roll3",
+        "opponent_completions_allowed_roll3",
+        "opponent_wr_receptions_allowed_roll3",
+        "opponent_wr_targets_allowed_roll3",
+    ):
+        assert by_name[name].source_dataset == "player_stats + wr_player_game"
+    assert by_name["same_game_targets"].availability_timing is FeatureTiming.POSTGAME
+    assert by_name["same_game_targets"].availability_timestamp == "after_current_game_final"
     assert "same_game_targets" not in MODEL_FEATURE_NAMES
     assert "team_plays_roll3" not in MODEL_FEATURE_NAMES
 
@@ -80,3 +107,11 @@ def test_registry_hash_changes_when_semantics_change():
     )
     changed = FeatureRegistry(features=(changed_feature, *FEATURE_REGISTRY[1:]))
     assert changed.registry_hash != WR_FEATURE_REGISTRY.registry_hash
+
+
+def test_high_leakage_current_game_feature_cannot_claim_pregame_availability():
+    same_game = WR_FEATURE_REGISTRY.by_name("same_game_targets")
+    assert same_game.enabled is False
+    assert same_game.leakage_risk is LeakageRisk.HIGH
+    assert same_game.availability_timing is not FeatureTiming.PREGAME
+    assert "before_current_kickoff" not in same_game.availability_timestamp

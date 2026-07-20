@@ -56,6 +56,13 @@ def audit_wr_feature_table(
         "coverage_by_history_tier": {
             row["history_tier"]: row["len"] for row in tiers.iter_rows(named=True)
         },
-        "leakage_validation": "PASS",
+        "leakage_validation": {
+            "status": "NOT_RUN",
+            "checks_run": [],
+            "reason": (
+                "A materialized feature table cannot establish causal leakage invariance "
+                "without rebuilding from controlled current-game and future-game mutations."
+            ),
+        },
         "features": features,
     }

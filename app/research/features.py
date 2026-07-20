@@ -82,6 +82,43 @@ def _number(value: Any) -> float | None:
     return result if math.isfinite(result) else None
 
 
+def _normalize_nullable_float(
+    frame: pl.DataFrame,
+    *,
+    column: str,
+    label: str,
+    minimum: float | None = None,
+    maximum: float | None = None,
+) -> pl.DataFrame:
+    normalized_name = f"__edgeiq_numeric_{column}"
+    try:
+        normalized = frame.with_columns(
+            pl.col(column).cast(pl.Float64, strict=False).alias(normalized_name)
+        )
+    except Exception as exc:
+        raise FeatureDatasetError(f"{label}.{column} must contain numeric values or null.") from exc
+    invalid_numeric = normalized.filter(
+        pl.col(column).is_not_null()
+        & (
+            pl.col(normalized_name).is_null()
+            | ~pl.col(normalized_name).is_finite()
+        )
+    )
+    if invalid_numeric.height:
+        raise FeatureDatasetError(f"{label}.{column} must contain numeric values or null.")
+    if minimum is not None and normalized.filter(
+        pl.col(normalized_name).is_not_null() & (pl.col(normalized_name) < minimum)
+    ).height:
+        raise FeatureDatasetError(f"{label}.{column} must be at least {minimum:g}.")
+    if maximum is not None and normalized.filter(
+        pl.col(normalized_name).is_not_null() & (pl.col(normalized_name) > maximum)
+    ).height:
+        raise FeatureDatasetError(f"{label}.{column} must be at most {maximum:g}.")
+    return normalized.with_columns(
+        pl.col(normalized_name).alias(column)
+    ).drop(normalized_name)
+
+
 def _mean(values: list[float | None], window: int) -> float | None:
     observed = values[-window:]
     if not observed or any(value is None for value in observed):
@@ -136,17 +173,18 @@ def _prepare_optional_usage(
     normalized = frame.select(
         pl.col(player_column).cast(pl.String).alias("source_player_id"),
         pl.col("game_id").cast(pl.String),
-        pl.col(value_column).cast(pl.Float64, strict=False),
+        pl.col(value_column),
+    )
+    normalized = _normalize_nullable_float(
+        normalized,
+        column=value_column,
+        label=label,
+        minimum=0,
+        maximum=1,
     )
     duplicate = normalized.group_by(PRIMARY_KEY).len().filter(pl.col("len") > 1)
     if duplicate.height:
         raise FeatureDatasetError(f"{label} contains duplicate player-game rows.")
-    invalid = normalized.filter(
-        pl.col(value_column).is_not_null()
-        & ((pl.col(value_column) < 0) | (pl.col(value_column) > 1))
-    )
-    if invalid.height:
-        raise FeatureDatasetError(f"{label}.{value_column} must be between zero and one.")
     return {
         (str(row["source_player_id"]), str(row["game_id"])): _number(row[value_column])
         for row in normalized.iter_rows(named=True)
@@ -260,20 +298,48 @@ def build_wr_feature_table(
         raise FeatureDatasetError("training_table has ambiguous team-week schedule mappings.")
 
     numeric_columns = [column for column in ("attempts", "completions") if column in stats.columns]
+    if "completions" in numeric_columns and "attempts" not in numeric_columns:
+        raise FeatureDatasetError(
+            "player_stats.completions requires player_stats.attempts for validation."
+        )
+    for column in numeric_columns:
+        stats = _normalize_nullable_float(
+            stats,
+            column=column,
+            label="player_stats",
+            minimum=0,
+        )
+    if {"attempts", "completions"} <= set(numeric_columns):
+        invalid_completions = stats.filter(
+            pl.col("completions").is_not_null()
+            & (
+                pl.col("attempts").is_null()
+                | (pl.col("completions") > pl.col("attempts"))
+            )
+        )
+        if invalid_completions.height:
+            raise FeatureDatasetError(
+                "player_stats.completions cannot exceed attempts or be present when attempts is null."
+            )
     team_parts = stats.select(
         pl.col("season").cast(pl.Int32),
         pl.col("week").cast(pl.Int32),
         pl.col(team_column).cast(pl.String).alias("team"),
         pl.col("position").cast(pl.String).str.to_uppercase().alias("position"),
         pl.col("targets").cast(pl.Float64, strict=False).fill_null(0).alias("targets"),
-        *[pl.col(column).cast(pl.Float64, strict=False).fill_null(0) for column in numeric_columns],
+        *[pl.col(column) for column in numeric_columns],
     )
     aggregations: list[pl.Expr] = [
         pl.col("targets").filter(pl.col("position") == "WR").sum().alias("wr_targets"),
         pl.col("targets").filter(pl.col("position") == "WR").max().alias("max_wr_targets"),
     ]
     for column in numeric_columns:
-        aggregations.append(pl.col(column).sum().alias(column))
+        aggregations.append(
+            pl.when(pl.col(column).count() > 0)
+            .then(pl.col(column).sum())
+            .otherwise(None)
+            .alias(column)
+        )
     team_game = (
         team_parts.group_by("season", "week", "team").agg(aggregations)
         .join(schedule_map, on=["season", "week", "team"], how="inner", validate="1:1")

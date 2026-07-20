@@ -155,6 +155,45 @@ def test_missing_usage_is_explicit_and_optional_usage_is_shifted():
     assert second["snap_share_missing"] == 0
 
 
+def test_legitimate_null_optional_usage_remains_missing():
+    stats, _, training = _feature_inputs()
+    usage = training.select("source_player_id", "game_id").with_columns(
+        pl.lit(None, dtype=pl.Float64).alias("snap_share"),
+        pl.lit(None, dtype=pl.Float64).alias("route_participation"),
+    )
+    features = build_wr_feature_table(
+        training,
+        stats,
+        snap_counts=usage.select("source_player_id", "game_id", "snap_share"),
+        participation=usage.select(
+            "source_player_id", "game_id", "route_participation"
+        ),
+    )
+    assert features.get_column("snap_share_lag1").null_count() == features.height
+    assert features.get_column("route_participation_lag1").null_count() == features.height
+    assert features.get_column("snap_share_missing").to_list() == [1] * features.height
+    assert features.get_column("route_participation_missing").to_list() == [1] * features.height
+
+
+@pytest.mark.parametrize(
+    ("argument_name", "value_column"),
+    (
+        ("snap_counts", "snap_share"),
+        ("participation", "route_participation"),
+    ),
+)
+def test_malformed_non_null_optional_usage_is_rejected(
+    argument_name: str,
+    value_column: str,
+):
+    stats, _, training = _feature_inputs()
+    usage = training.select("source_player_id", "game_id").with_columns(
+        pl.lit("not-a-number").alias(value_column)
+    )
+    with pytest.raises(FeatureDatasetError, match="must contain numeric values or null"):
+        build_wr_feature_table(training, stats, **{argument_name: usage})
+
+
 def test_current_and_future_outcomes_cannot_change_available_features():
     stats, _, training = _feature_inputs()
     baseline = build_wr_feature_table(training, stats)
@@ -298,7 +337,7 @@ def test_duplicate_rows_and_malformed_optional_usage_are_rejected():
     usage = training.head(1).select("source_player_id", "game_id").with_columns(
         pl.lit(1.2).alias("snap_share")
     )
-    with pytest.raises(FeatureDatasetError, match="between zero and one"):
+    with pytest.raises(FeatureDatasetError, match="at most 1"):
         build_wr_feature_table(training, stats, snap_counts=usage)
     with pytest.raises(FeatureDatasetError, match="null kickoff"):
         build_wr_feature_table(
@@ -308,6 +347,48 @@ def test_duplicate_rows_and_malformed_optional_usage_are_rejected():
             ),
             stats,
         )
+
+
+@pytest.mark.parametrize(
+    ("column", "value", "message"),
+    (
+        ("attempts", "not-a-number", "must contain numeric values or null"),
+        ("completions", "not-a-number", "must contain numeric values or null"),
+        ("attempts", -1, "must be at least 0"),
+        ("completions", -1, "must be at least 0"),
+    ),
+)
+def test_invalid_team_passing_values_fail_explicitly(
+    column: str,
+    value: object,
+    message: str,
+):
+    stats, _, training = _feature_inputs()
+    original = pl.col(column).cast(pl.String) if isinstance(value, str) else pl.col(column)
+    invalid = stats.with_columns(
+        pl.when(pl.col("player_id") == "QB-PHI")
+        .then(pl.lit(value))
+        .otherwise(original)
+        .alias(column)
+    )
+    with pytest.raises(FeatureDatasetError, match=message):
+        build_wr_feature_table(training, invalid)
+
+
+def test_completions_greater_than_attempts_fail_explicitly():
+    stats, _, training = _feature_inputs()
+    invalid = stats.with_columns(
+        pl.when(pl.col("player_id") == "QB-PHI")
+        .then(pl.lit(5))
+        .otherwise(pl.col("attempts"))
+        .alias("attempts"),
+        pl.when(pl.col("player_id") == "QB-PHI")
+        .then(pl.lit(6))
+        .otherwise(pl.col("completions"))
+        .alias("completions"),
+    )
+    with pytest.raises(FeatureDatasetError, match="completions cannot exceed attempts"):
+        build_wr_feature_table(training, invalid)
 
 
 def test_output_contract_rejects_wrong_dtype_disabled_columns_and_registry_mismatch():
@@ -350,7 +431,8 @@ def test_atomic_write_manifest_hashes_validation_and_audit(
     )
     assert audit["row_count"] == features.height
     assert audit["feature_count"] == len(FEATURE_COLUMNS)
-    assert audit["leakage_validation"] == "PASS"
+    assert audit["leakage_validation"]["status"] == "NOT_RUN"
+    assert audit["leakage_validation"]["checks_run"] == []
     assert list(audit["features"]) == list(FEATURE_COLUMNS)
     assert list(audit["source_hashes"]) == ["source"]
 
@@ -375,6 +457,20 @@ def test_atomic_write_manifest_hashes_validation_and_audit(
     assert path.read_bytes() == stable_bytes
     assert not path.with_suffix(".parquet.tmp").exists()
     monkeypatch.setattr(pl.DataFrame, "write_parquet", original_write)
+
+
+def test_deliberately_leaky_table_cannot_receive_false_audit_pass():
+    stats, _, training = _feature_inputs()
+    features = build_wr_feature_table(training, stats)
+    leaky = features.with_columns(
+        pl.col("actual_receptions").cast(pl.Float64).alias("receptions_lag1")
+    )
+    audit = audit_wr_feature_table(leaky)
+    assert leaky.get_column("receptions_lag1").to_list() == leaky.get_column(
+        "actual_receptions"
+    ).cast(pl.Float64).to_list()
+    assert audit["leakage_validation"]["status"] == "NOT_RUN"
+    assert audit["leakage_validation"]["status"] != "PASS"
 
 
 def test_feature_cli_registry_and_validation(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
