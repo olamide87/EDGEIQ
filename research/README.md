@@ -32,6 +32,31 @@ status. It does not fit or evaluate a model. Generated reports are ignored.
 Tests inject synthetic CSV loaders and never call the internet. The committed fixture
 backfill is intentionally too small to support football or profitability conclusions.
 
+## v0.5C governed baselines
+
+Research Governance v1.0 is defined in `docs/research-governance.md` and encoded
+under `app.research.evaluation`. The deterministic baseline layer provides league
+mean, previous-game, rolling three-game, rolling five-game, season-to-date,
+career-average diagnostic, and Poisson-rate predictions.
+
+The evaluation layer:
+
+- scores every baseline on one shared chronological cohort;
+- reports MAE, ECE, mean Poisson deviance, RMSE, bias, coverage, prediction
+  variance, and sample counts;
+- performs seeded paired-bootstrap MAE comparisons;
+- selects and freezes the lowest-MAE eligible baseline on the shared cohort,
+  using stable baseline name only to break an exact tie;
+- emits calibration bins, segment metrics, error analysis, data-quality
+  diagnostics, and a formal `RESEARCH` recommendation; and
+- records dataset, registry, feature-table, configuration, implementation, code,
+  and protocol identities in a canonical scorecard.
+
+Scorecard timestamps remain provenance, not canonical identity. Generated
+scorecards belong under ignored `research/reports/`. The committed synthetic
+fixture tests mechanics and determinism only; it is not a publishable baseline
+result and does not update the unevaluated model-registry scorecard.
+
 ## Experiment rule
 
 Later experiment reports must record the Git revision, configuration, source manifest
