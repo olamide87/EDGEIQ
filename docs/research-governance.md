@@ -39,12 +39,16 @@ evaluation_protocol:
   version: "1.0"
   validation_method: chronological_held_out
   primary_metric: mean_absolute_error
+  baseline_selection_metric: mean_absolute_error
+  baseline_tie_breaker: baseline_name_ascending
   calibration_metric: expected_calibration_error
+  calibration_method: fixed_width
+  calibration_bins: 10
   distribution_metric: mean_poisson_deviance
   significance_test: paired_bootstrap
   confidence_level: 0.95
   bootstrap_iterations: 10000
-  random_seed: required
+  random_seed: 50000
 ```
 
 Player-game rows must never be randomly split. Training observations must occur
@@ -56,6 +60,12 @@ Comparisons use the same eligible player-game cohort. A candidate may not appear
 better by silently dropping difficult rows. Coverage differences must be reported
 and justified.
 
+The strongest eligible baseline is the baseline with the lowest MAE on that
+shared cohort. Ascending stable baseline name is used only when MAE values are
+exactly equal. ECE and mean Poisson deviance remain promotion-critical metrics
+that must be reported and passed by a learned candidate; they do not participate
+in baseline selection and are not combined into an unregistered composite score.
+
 ### Promotion-critical metrics
 
 These metrics determine whether a model may advance:
@@ -66,9 +76,12 @@ These metrics determine whether a model may advance:
 | Expected Calibration Error (ECE) | Weighted absolute difference between predicted and observed event rates across pre-registered probability bins | Equal or lower |
 | Mean Poisson Deviance | Mean Poisson deviance for non-negative reception counts | Lower |
 
-The experiment configuration must define probability events and calibration bins
-before evaluation. Empty bins are reported, not silently removed or merged after
-results are observed.
+The experiment configuration must define the probability event before evaluation.
+Governance v1.0 uses ten equal-width calibration bins over `[0, 1]`.
+Fixed-width bins were selected because their boundaries are deterministic,
+transparent, and comparable across runs. Empty bins are reported, not silently
+removed or merged after results are observed. Changing the binning method or bin
+count can change promotion results and therefore requires Governance v2.0.
 
 ### Diagnostic metrics
 
@@ -103,6 +116,8 @@ hierarchy.
 The strongest eligible baseline is selected under the registered v0.5C protocol
 and frozen before a learned candidate is evaluated. It must have valid predictions
 for the comparison cohort and no unresolved leakage or reproducibility issue.
+Selection uses the registered primary error metric, MAE, exactly as defined above;
+calibration and Poisson deviance remain separate promotion gates.
 
 ## Statistical comparisons
 

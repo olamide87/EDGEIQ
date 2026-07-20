@@ -5,15 +5,18 @@ import runpy
 import polars as pl
 import pytest
 
+from app.research.baselines import BaselineName
 from app.research.evaluation import (
     BaselineEvaluationConfig,
     EvaluationPeriod,
     ReproducibilityMetadata,
     ResearchDecision,
+    MetricSummary,
     calculate_metrics,
     evaluate_wr_baselines,
     paired_mae_bootstrap,
     poisson_over_probability,
+    select_strongest_baseline,
     write_baseline_scorecard,
 )
 from app.research.features import (
@@ -39,7 +42,6 @@ def _config() -> BaselineEvaluationConfig:
             start=datetime(2023, 9, 17, tzinfo=timezone.utc),
             end=datetime(2024, 12, 31, tzinfo=timezone.utc),
         ),
-        calibration_bins=5,
         minimum_evaluation_rows=1,
     )
 
@@ -129,7 +131,11 @@ def test_scorecard_is_deterministic_and_contains_governed_research_artifacts(tmp
         result.metrics.sample_count == first.shared_cohort_size
         for result in first.results
     )
-    assert all(len(result.calibration) == 5 for result in first.results)
+    assert all(len(result.calibration) == 10 for result in first.results)
+    assert (
+        first.baseline_selection_rule
+        == "lowest_mean_absolute_error_on_shared_cohort_then_baseline_name"
+    )
     assert first.recommendation.decision is ResearchDecision.RESEARCH
     assert set(first.failure_report.segments) == {
         "rookies",
@@ -173,3 +179,26 @@ def test_scorecard_rejects_reproducibility_mismatch_and_empty_validation_cohort(
             config=empty_config,
             reproducibility=_metadata(features),
         )
+
+
+def test_strongest_baseline_uses_mae_not_a_hidden_metric_composite():
+    def summary(mae: float, calibration: float, deviance: float) -> MetricSummary:
+        return MetricSummary(
+            mae=mae,
+            calibration_error=calibration,
+            poisson_deviance=deviance,
+            rmse=mae,
+            bias=0,
+            coverage=1,
+            prediction_variance=0,
+            sample_count=10,
+        )
+
+    metrics = {
+        BaselineName.ROLLING_3: summary(1.0, 0.9, 9.0),
+        BaselineName.ROLLING_5: summary(1.1, 0.1, 1.0),
+    }
+    assert select_strongest_baseline(
+        metrics,
+        hierarchy={BaselineName.ROLLING_3, BaselineName.ROLLING_5},
+    ) is BaselineName.ROLLING_3

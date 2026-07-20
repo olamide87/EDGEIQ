@@ -63,12 +63,16 @@ class MetricDefinition(BaseModel):
 class EvaluationProtocol(BaseModel):
     """Pre-registered statistical protocol for Governance v1.0."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     version: str = Field(default="1.0", pattern=r"^\d+\.\d+$")
     validation_method: str = "chronological_held_out"
     primary_metric: MetricName = MetricName.MAE
+    baseline_selection_metric: MetricName = MetricName.MAE
+    baseline_tie_breaker: str = "baseline_name_ascending"
     calibration_metric: MetricName = MetricName.CALIBRATION_ERROR
+    calibration_method: str = "fixed_width"
+    calibration_bins: int = Field(default=10, ge=2)
     distribution_metric: MetricName = MetricName.POISSON_DEVIANCE
     significance_test: str = "paired_bootstrap"
     confidence_level: float = Field(default=0.95, gt=0, lt=1)
@@ -81,8 +85,16 @@ class EvaluationProtocol(BaseModel):
             raise ValueError("Governance v1.0 requires chronological held-out validation.")
         if self.primary_metric is not MetricName.MAE:
             raise ValueError("Governance v1.0 uses MAE as its primary error metric.")
+        if self.baseline_selection_metric is not MetricName.MAE:
+            raise ValueError("Governance v1.0 selects the strongest baseline by MAE.")
+        if self.baseline_tie_breaker != "baseline_name_ascending":
+            raise ValueError("Governance v1.0 requires a stable baseline-name tie breaker.")
         if self.calibration_metric is not MetricName.CALIBRATION_ERROR:
             raise ValueError("Governance v1.0 requires expected calibration error.")
+        if self.calibration_method != "fixed_width":
+            raise ValueError("Governance v1.0 requires fixed-width calibration bins.")
+        if self.calibration_bins != 10:
+            raise ValueError("Governance v1.0 freezes calibration at ten bins.")
         if self.distribution_metric is not MetricName.POISSON_DEVIANCE:
             raise ValueError("Governance v1.0 requires mean Poisson deviance.")
         if self.significance_test != "paired_bootstrap":

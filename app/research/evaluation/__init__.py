@@ -26,6 +26,7 @@ from app.research.evaluation.scorecard import (
     PromotionRecommendation,
     ReproducibilityMetadata,
     evaluate_wr_baselines,
+    select_strongest_baseline,
     write_baseline_scorecard,
 )
 from app.research.evaluation.statistics import (
@@ -57,5 +58,6 @@ __all__ = [
     "evaluate_wr_baselines",
     "paired_mae_bootstrap",
     "poisson_over_probability",
+    "select_strongest_baseline",
     "write_baseline_scorecard",
 ]

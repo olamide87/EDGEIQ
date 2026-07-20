@@ -41,7 +41,7 @@ from feature_store.registry import WR_FEATURE_REGISTRY
 class EvaluationPeriod(BaseModel):
     """Inclusive chronological period recorded in a scorecard."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     start: datetime
     end: datetime
@@ -58,13 +58,12 @@ class EvaluationPeriod(BaseModel):
 class BaselineEvaluationConfig(BaseModel):
     """Immutable settings that determine evaluation results."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     schema_version: str = "1.0"
     training_period: EvaluationPeriod
     validation_period: EvaluationPeriod
     calibration_line: float = Field(default=4.5, ge=0)
-    calibration_bins: int = Field(default=10, ge=2)
     poisson_epsilon: float = Field(default=1e-12, gt=0)
     minimum_evaluation_rows: int = Field(default=1, ge=1)
     error_report_limit: int = Field(default=10, ge=1)
@@ -174,6 +173,7 @@ class BaselineScorecard(BaseModel):
     reproducibility: ReproducibilityMetadata
     baseline_versions: dict[str, str]
     shared_cohort_size: int
+    baseline_selection_rule: str
     strongest_eligible_baseline: BaselineName
     results: tuple[BaselineResult, ...]
     failure_report: FailureReport
@@ -221,6 +221,26 @@ def _metric_inputs(
     return actuals, predictions
 
 
+def select_strongest_baseline(
+    metrics: dict[BaselineName, MetricSummary],
+    *,
+    hierarchy: set[BaselineName],
+) -> BaselineName:
+    """Select by governed MAE only, with name as an exact-tie breaker."""
+
+    missing = sorted(name.value for name in hierarchy - set(metrics))
+    if missing:
+        raise ValueError(
+            f"Cannot select strongest baseline; missing metrics for: {', '.join(missing)}."
+        )
+    if GOVERNANCE_V1.protocol.baseline_selection_metric.value != "mean_absolute_error":
+        raise ValueError("Unsupported baseline-selection metric for Governance v1.0.")
+    return min(
+        hierarchy,
+        key=lambda name: (metrics[name].mae, name.value),
+    )
+
+
 def _group_bias(rows: list[dict[str, Any]], column: str) -> dict[str, float]:
     grouped: dict[str, list[float]] = {}
     for row in rows:
@@ -247,7 +267,7 @@ def _segment_metrics(
         predictions,
         coverage=1.0,
         calibration_line=config.calibration_line,
-        calibration_bins=config.calibration_bins,
+        calibration_bins=config.protocol.calibration_bins,
         poisson_epsilon=config.poisson_epsilon,
     )
     return SegmentResult(sample_count=len(selected), metrics=metrics)
@@ -422,7 +442,7 @@ def evaluate_wr_baselines(
             predicted,
             coverage=coverage[name.value],
             calibration_line=config.calibration_line,
-            calibration_bins=config.calibration_bins,
+            calibration_bins=config.protocol.calibration_bins,
             poisson_epsilon=config.poisson_epsilon,
         )
         metrics_by_name[name] = metrics
@@ -436,10 +456,7 @@ def evaluate_wr_baselines(
         BaselineName.SEASON_TO_DATE,
         BaselineName.POISSON,
     }
-    strongest = min(
-        hierarchy,
-        key=lambda name: (metrics_by_name[name].mae, name.value),
-    )
+    strongest = select_strongest_baseline(metrics_by_name, hierarchy=hierarchy)
     actuals, strongest_predictions = _metric_inputs(shared, strongest)
     results: list[BaselineResult] = []
     for spec in BASELINE_SPECS:
@@ -490,6 +507,9 @@ def evaluate_wr_baselines(
         "reproducibility": reproducibility.model_dump(mode="json"),
         "baseline_versions": baseline_versions,
         "shared_cohort_size": len(shared),
+        "baseline_selection_rule": (
+            "lowest_mean_absolute_error_on_shared_cohort_then_baseline_name"
+        ),
         "strongest_eligible_baseline": strongest.value,
         "results": [result.model_dump(mode="json") for result in results],
         "failure_report": report.model_dump(mode="json"),

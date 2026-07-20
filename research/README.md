@@ -45,7 +45,8 @@ The evaluation layer:
 - reports MAE, ECE, mean Poisson deviance, RMSE, bias, coverage, prediction
   variance, and sample counts;
 - performs seeded paired-bootstrap MAE comparisons;
-- selects and freezes the strongest eligible baseline deterministically;
+- selects and freezes the lowest-MAE eligible baseline on the shared cohort,
+  using stable baseline name only to break an exact tie;
 - emits calibration bins, segment metrics, error analysis, data-quality
   diagnostics, and a formal `RESEARCH` recommendation; and
 - records dataset, registry, feature-table, configuration, implementation, code,

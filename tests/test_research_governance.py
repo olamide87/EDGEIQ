@@ -44,15 +44,21 @@ def test_evaluation_protocol_v1_is_chronological_and_pre_registered():
     protocol = GOVERNANCE_V1.protocol
 
     assert protocol.validation_method == "chronological_held_out"
+    assert protocol.baseline_selection_metric is MetricName.MAE
+    assert protocol.baseline_tie_breaker == "baseline_name_ascending"
+    assert protocol.calibration_method == "fixed_width"
+    assert protocol.calibration_bins == 10
     assert protocol.significance_test == "paired_bootstrap"
     assert protocol.confidence_level == 0.95
     assert protocol.bootstrap_iterations == 10_000
-    assert isinstance(protocol.random_seed, int)
+    assert protocol.random_seed == 50_000
 
     with pytest.raises(ValidationError, match="chronological"):
         EvaluationProtocol(validation_method="random_split")
     with pytest.raises(ValidationError, match="MAE"):
         EvaluationProtocol(primary_metric=MetricName.RMSE)
+    with pytest.raises(ValidationError, match="ten bins"):
+        EvaluationProtocol(calibration_bins=5)
 
 
 def test_promotion_contract_and_research_decisions_are_explicit():

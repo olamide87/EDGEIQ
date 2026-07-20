@@ -10,6 +10,7 @@ validation_window:
   final_holdout: latest_complete_season
 metrics:
   primary_error: mean_absolute_error
+  baseline_selection: lowest_mean_absolute_error_on_shared_cohort
   calibration: expected_calibration_error
   distribution: mean_poisson_deviance
   diagnostic:
