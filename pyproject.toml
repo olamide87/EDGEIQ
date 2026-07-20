@@ -1,6 +1,6 @@
 [project]
 name = "edge-iq"
-version = "0.5.0a1"
+version = "0.5.0a2"
 description = "Local-first NFL player-prop research, validation, and paper-trading analytics"
 readme = "README.md"
 requires-python = ">=3.11"

@@ -1,9 +1,9 @@
-# EDGE IQ v0.5A
+# EDGE IQ v0.5B
 
 EDGE IQ is a typed, local-first research application for NFL player-prop line
 shopping, scheduled authorized-odds ingestion, projection review, and paper-trading
-analytics. v0.5A adds an offline-testable nflverse adapter, season-partitioned local cache,
-source manifests, player normalization, and a deterministic WR player-game table.
+analytics. v0.5B adds a typed, deterministic, point-in-time WR feature store on top
+of the reproducible v0.5A player-game dataset.
 
 EDGE IQ does not scrape sportsbook sites, automate logins, place wagers, or claim
 that any model or recommendation will be profitable. The Odds API remains the only
@@ -51,9 +51,28 @@ larger and is not needed to produce the v0.5A table. Tests inject tiny synthetic
 fixtures and make no network calls. See [research/README.md](research/README.md) and
 [data-source attribution](docs/data-sources.md).
 
-v0.5A does not train a model. Feature engineering, simple baselines, and learned
-models are separate v0.5B–D promotion gates. nflverse does not provide historical
+v0.5B does not train a model. Simple baselines and learned models remain separate
+v0.5C-D promotion gates. nflverse does not provide historical
 player-prop odds, and projection accuracy does not establish betting profitability.
+
+## WR feature engineering
+
+```text
+python -m app.cli build-wr-features --seasons 2021 2022 2023 2024 2025
+python -m app.cli feature-registry
+python -m app.cli validate-wr-features --path data/processed/wr_receptions_features.parquet
+python research/experiments/run_v05b_feature_audit.py
+```
+
+Player rolling features are shifted by one completed game and carry across seasons;
+season-to-date, team, and opponent histories reset each season. The builder updates
+history only after every row in a game is materialized. Missing data remains visible,
+with explicit indicators for unavailable snap and route-participation history.
+
+The registry contains candidate features only. No feature is promoted merely because
+it sounds predictive; usefulness is evaluated in v0.5C and v0.5D. See
+[the feature registry](feature_store/README.md) and
+[ADR 0006](docs/decisions/0006-point-in-time-feature-semantics.md).
 
 ## API
 

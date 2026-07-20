@@ -1,6 +1,7 @@
 model: wr_receptions
 version: 0.1.0
 features: []
+candidate_feature_registry: wr-receptions-features-v1
 training_window: null
 validation_window:
   strategy: expanding_time
