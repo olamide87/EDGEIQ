@@ -181,6 +181,18 @@ class BaselineScorecard(BaseModel):
     scorecard_hash: str
 
 
+GOVERNED_BASELINE_HIERARCHY: frozenset[BaselineName] = frozenset(
+    {
+        BaselineName.LEAGUE_MEAN,
+        BaselineName.PREVIOUS_GAME,
+        BaselineName.ROLLING_3,
+        BaselineName.ROLLING_5,
+        BaselineName.SEASON_TO_DATE,
+        BaselineName.POISSON,
+    }
+)
+
+
 def _shared_rows(
     predictions: pl.DataFrame,
     baseline_names: tuple[BaselineName, ...],
@@ -219,6 +231,55 @@ def _metric_inputs(
     ]
     predictions = [float(values[baseline]["prediction"]) for values in shared.values()]
     return actuals, predictions
+
+
+def build_governed_baseline_cohort(
+    feature_table: pl.DataFrame,
+    *,
+    config: BaselineEvaluationConfig,
+    evaluation_keys: pl.DataFrame | None = None,
+) -> tuple[
+    dict[tuple[str, str], dict[BaselineName, dict[str, Any]]],
+    dict[str, float],
+]:
+    """Return the canonical shared held-out rows used by governed baselines."""
+
+    predictions = build_wr_baseline_predictions(feature_table)
+    kickoff_dtype = predictions.schema["kickoff"]
+    validation_start = config.validation_period.start
+    validation_end = config.validation_period.end
+    if isinstance(kickoff_dtype, pl.Datetime) and kickoff_dtype.time_zone is None:
+        validation_start = validation_start.astimezone(timezone.utc).replace(tzinfo=None)
+        validation_end = validation_end.astimezone(timezone.utc).replace(tzinfo=None)
+    predictions = predictions.filter(
+        (pl.col("kickoff") >= validation_start)
+        & (pl.col("kickoff") <= validation_end)
+    )
+    if evaluation_keys is not None:
+        key_columns = ("source_player_id", "game_id")
+        missing = sorted(set(key_columns) - set(evaluation_keys.columns))
+        if missing:
+            raise ValueError(
+                "evaluation_keys is missing required columns: " + ", ".join(missing)
+            )
+        keys = evaluation_keys.select(key_columns)
+        if keys.null_count().row(0) != (0, 0):
+            raise ValueError("evaluation_keys cannot contain null identifiers.")
+        if keys.group_by(key_columns).len().filter(pl.col("len") > 1).height:
+            raise ValueError("evaluation_keys contains duplicate player-game rows.")
+        predictions = predictions.join(
+            keys,
+            on=list(key_columns),
+            how="inner",
+            validate="m:1",
+        )
+    required = tuple(spec.name for spec in BASELINE_SPECS)
+    shared, coverage = _shared_rows(predictions, required)
+    if len(shared) < config.minimum_evaluation_rows:
+        raise ValueError(
+            "Shared baseline cohort does not meet minimum_evaluation_rows."
+        )
+    return shared, coverage
 
 
 def select_strongest_baseline(
@@ -405,6 +466,7 @@ def evaluate_wr_baselines(
     config: BaselineEvaluationConfig,
     reproducibility: ReproducibilityMetadata,
     evaluated_at: datetime | None = None,
+    evaluation_keys: pl.DataFrame | None = None,
 ) -> BaselineScorecard:
     """Evaluate every governed baseline and return a deterministic scorecard."""
 
@@ -415,23 +477,12 @@ def evaluate_wr_baselines(
     if reproducibility.feature_registry_hash != WR_FEATURE_REGISTRY.registry_hash:
         raise ValueError("Feature registry hash does not match Governance input.")
 
-    predictions = build_wr_baseline_predictions(feature_table)
-    kickoff_dtype = predictions.schema["kickoff"]
-    validation_start = config.validation_period.start
-    validation_end = config.validation_period.end
-    if isinstance(kickoff_dtype, pl.Datetime) and kickoff_dtype.time_zone is None:
-        validation_start = validation_start.astimezone(timezone.utc).replace(tzinfo=None)
-        validation_end = validation_end.astimezone(timezone.utc).replace(tzinfo=None)
-    predictions = predictions.filter(
-        (pl.col("kickoff") >= validation_start)
-        & (pl.col("kickoff") <= validation_end)
-    )
     required = tuple(spec.name for spec in BASELINE_SPECS)
-    shared, coverage = _shared_rows(predictions, required)
-    if len(shared) < config.minimum_evaluation_rows:
-        raise ValueError(
-            "Shared baseline cohort does not meet minimum_evaluation_rows."
-        )
+    shared, coverage = build_governed_baseline_cohort(
+        feature_table,
+        config=config,
+        evaluation_keys=evaluation_keys,
+    )
 
     metrics_by_name: dict[BaselineName, MetricSummary] = {}
     calibration_by_name: dict[BaselineName, tuple[CalibrationBin, ...]] = {}
@@ -448,15 +499,10 @@ def evaluate_wr_baselines(
         metrics_by_name[name] = metrics
         calibration_by_name[name] = calibration
 
-    hierarchy = {
-        BaselineName.LEAGUE_MEAN,
-        BaselineName.PREVIOUS_GAME,
-        BaselineName.ROLLING_3,
-        BaselineName.ROLLING_5,
-        BaselineName.SEASON_TO_DATE,
-        BaselineName.POISSON,
-    }
-    strongest = select_strongest_baseline(metrics_by_name, hierarchy=hierarchy)
+    strongest = select_strongest_baseline(
+        metrics_by_name,
+        hierarchy=set(GOVERNED_BASELINE_HIERARCHY),
+    )
     actuals, strongest_predictions = _metric_inputs(shared, strongest)
     results: list[BaselineResult] = []
     for spec in BASELINE_SPECS:

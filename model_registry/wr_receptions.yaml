@@ -1,13 +1,18 @@
-model: wr_receptions
+model: wr_receptions_poisson_regression
 version: 0.1.0
 governance_version: "1.0"
 evaluation_protocol_version: "1.0"
-features: []
+candidate_kind: learned_model
+features:
+  - receptions_roll3
+  - targets_roll3
+  - home_indicator
+  - games_played_before
 candidate_feature_registry: wr-receptions-features-v1
-training_window: null
+training_window:
+  strategy: explicit_chronological_period
 validation_window:
-  strategy: expanding_time
-  final_holdout: latest_complete_season
+  strategy: explicit_chronological_holdout
 metrics:
   primary_error: mean_absolute_error
   baseline_selection: lowest_mean_absolute_error_on_shared_cohort
@@ -19,9 +24,15 @@ metrics:
 calibration_results: null
 baseline_scorecard:
   schema_version: "1.0"
-  status: NOT_EVALUATED_ON_HISTORICAL_DATA
+  status: REQUIRED_GOVERNED_COMPARISON
   strongest_eligible_baseline: null
   scorecard_hash: null
-promotion_status: BASELINE_RESEARCH
+hyperparameters:
+  l2_penalty: 1.0
+  max_iterations: 100
+  tolerance: 1.0e-10
+  linear_predictor_limit: 20.0
+  solver_epsilon: 1.0e-10
+promotion_status: RESEARCH
 artifact_location: null
 last_training_date: null
