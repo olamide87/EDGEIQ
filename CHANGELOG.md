@@ -2,6 +2,20 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [0.6.0-alpha.1] - Unreleased
+
+### Added
+
+- Deterministic penalized Poisson regression for WR-receptions research
+- Immutable fitted state, canonical model fingerprints, and JSON round trips
+- Explicit chronological train/evaluation splitting and governed learned scorecards
+- Paired-bootstrap comparison with the strongest governed WR baseline
+
+### Scope
+
+- Research-only candidate with no promotion, production inference, or betting logic
+- No tuning, ensembles, feature selection, neural networks, or new dependencies
+
 ## [0.5.0-alpha.2] - Unreleased
 
 ### Added
