@@ -155,6 +155,17 @@ class WRPoissonState(BaseModel):
         return self
 
 
+def raw_scale_coefficients(state: WRPoissonState) -> tuple[float, ...]:
+    """Transform standardized fitted coefficients to original feature units."""
+
+    return tuple(
+        coefficient / scale
+        for coefficient, scale in zip(
+            state.coefficients, state.feature_scales, strict=True
+        )
+    )
+
+
 def _state_fingerprint(payload: dict[str, Any]) -> str:
     return canonical_hash(payload)
 

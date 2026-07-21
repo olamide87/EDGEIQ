@@ -35,6 +35,103 @@ class MetricSummary(BaseModel):
     sample_count: int = Field(ge=1)
 
 
+class ResidualSummary(BaseModel):
+    """Deterministic summary of prediction-minus-actual residuals."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    sample_count: int = Field(ge=1)
+    mean: float
+    minimum: float
+    q10: float
+    q25: float
+    median: float
+    q75: float
+    q90: float
+    maximum: float
+    mean_absolute: float = Field(ge=0)
+
+
+class PredictionBiasSummary(BaseModel):
+    """Signed and absolute learned-versus-baseline prediction bias."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    learned_mean_bias: float
+    baseline_mean_bias: float
+    absolute_learned_bias: float = Field(ge=0)
+    absolute_baseline_bias: float = Field(ge=0)
+    signed_difference: float
+    absolute_bias_difference: float
+
+
+def deterministic_quantile(values: list[float], probability: float) -> float:
+    """Return a linearly interpolated quantile with stable ordering."""
+
+    if not values:
+        raise ValueError("Quantiles require at least one value.")
+    if not 0 <= probability <= 1:
+        raise ValueError("Quantile probability must be between zero and one.")
+    ordered = sorted(values)
+    position = (len(ordered) - 1) * probability
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    if lower == upper:
+        return ordered[lower]
+    weight = position - lower
+    return ordered[lower] * (1 - weight) + ordered[upper] * weight
+
+
+def summarize_residuals(
+    actuals: list[float], predictions: list[float]
+) -> ResidualSummary:
+    """Summarize finite paired residuals in prediction-minus-actual direction."""
+
+    if len(actuals) != len(predictions) or not actuals:
+        raise ValueError("Residuals require equal, non-empty inputs.")
+    if any(not math.isfinite(value) for value in (*actuals, *predictions)):
+        raise ValueError("Residual inputs must be finite.")
+    residuals = [
+        prediction - actual
+        for actual, prediction in zip(actuals, predictions, strict=True)
+    ]
+    return ResidualSummary(
+        sample_count=len(residuals),
+        mean=sum(residuals) / len(residuals),
+        minimum=min(residuals),
+        q10=deterministic_quantile(residuals, 0.10),
+        q25=deterministic_quantile(residuals, 0.25),
+        median=deterministic_quantile(residuals, 0.50),
+        q75=deterministic_quantile(residuals, 0.75),
+        q90=deterministic_quantile(residuals, 0.90),
+        maximum=max(residuals),
+        mean_absolute=sum(abs(value) for value in residuals) / len(residuals),
+    )
+
+
+def summarize_prediction_bias(
+    actuals: list[float],
+    baseline_predictions: list[float],
+    learned_predictions: list[float],
+) -> PredictionBiasSummary:
+    """Compare signed bias while retaining target-zero interpretation."""
+
+    if not actuals or not (
+        len(actuals) == len(baseline_predictions) == len(learned_predictions)
+    ):
+        raise ValueError("Bias summaries require equal, non-empty inputs.")
+    learned = summarize_residuals(actuals, learned_predictions).mean
+    baseline = summarize_residuals(actuals, baseline_predictions).mean
+    return PredictionBiasSummary(
+        learned_mean_bias=learned,
+        baseline_mean_bias=baseline,
+        absolute_learned_bias=abs(learned),
+        absolute_baseline_bias=abs(baseline),
+        signed_difference=learned - baseline,
+        absolute_bias_difference=abs(learned) - abs(baseline),
+    )
+
+
 def poisson_over_probability(rate: float, line: float) -> float:
     """Return P(X > line) for a Poisson count with the supplied rate."""
 

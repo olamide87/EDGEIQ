@@ -38,9 +38,31 @@ wall-clock timestamps, paths, memory addresses, and other volatile values.
 The learned candidate is evaluated on the same shared cohort as all governed WR
 baselines. Its scorecard reports MAE, expected calibration error, mean Poisson
 deviance, diagnostics, and the existing seeded paired-bootstrap MAE comparison
-against the governed strongest baseline. v0.6A always returns a `RESEARCH` decision:
-it does not implement the remaining subgroup and promotion gates and therefore
-cannot promote the candidate.
+against the governed strongest baseline. The v0.6A single-window API and scorecard
+semantics remain unchanged.
+
+## v0.6B rolling evaluation
+
+v0.6B adds predeclared expanding-window evaluation. Training begins at one fixed
+timestamp and expands only through rows strictly before each non-overlapping
+evaluation window. A new model is fitted in every window, and its canonical state
+and fingerprint are retained. The learned model and the strongest eligible
+deterministic baseline are evaluated on identical held-out player-game rows.
+
+Every window reports MAE, RMSE, mean Poisson deviance, mean signed prediction bias,
+and learned-minus-baseline differences. Aggregate metrics are calculated from the
+pooled, non-overlapping out-of-sample rows rather than by averaging window metrics.
+A paired percentile bootstrap recomputes all four aggregate metric differences with
+an explicit seed, configurable iteration count, and recorded confidence level.
+
+Diagnostics include deterministic residual quantiles, signed and absolute
+prediction bias, per-window standardized and raw-scale coefficients, coefficient
+ranges, and sign changes. The scorecard has a canonical hash, and the Markdown
+renderer uses fixed section, row, feature, metric, and numeric formatting. Wall-clock
+evaluation time is excluded from the canonical scorecard identity and report.
+
+Both v0.6A and v0.6B always return a `RESEARCH` decision. Rolling evidence cannot
+promote the candidate or activate a production or wagering path.
 
 ## Known limitations
 
@@ -50,3 +72,7 @@ cannot promote the candidate.
 - The solver is intentionally small and is not optimized for large datasets.
 - No production artifact, live inference API, betting logic, or profitability claim
   is included.
+- Rolling windows are predeclared; v0.6B performs no automatic window, model, or
+  hyperparameter selection.
+- Calibration curves, prediction intervals, and alternative count-model families
+  remain deferred.
