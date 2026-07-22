@@ -2,6 +2,23 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [0.6.0-alpha.2] - Unreleased
+
+### Added
+
+- Deterministic expanding-window evaluation for the learned WR-receptions model
+- Per-window learned-versus-baseline MAE, RMSE, Poisson deviance, and bias differences
+- Seeded paired-bootstrap confidence intervals for pooled out-of-sample differences
+- Residual, prediction-bias, and cross-window coefficient-stability summaries
+- Canonical rolling scorecards and deterministic Markdown research reports
+
+### Scope
+
+- Research-only diagnostics with no production promotion or sportsbook execution
+- No automatic model selection, tuning, calibration curves, prediction intervals,
+  dashboards, or additional model families
+- Existing v0.6A public APIs and scorecard semantics remain unchanged
+
 ## [0.6.0-alpha.1] - Unreleased
 
 ### Added

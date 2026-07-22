@@ -8,6 +8,7 @@ import pytest
 from app.research.baselines import BaselineName
 from app.research.evaluation import (
     BaselineEvaluationConfig,
+    ComparisonMetric,
     EvaluationPeriod,
     ReproducibilityMetadata,
     ResearchDecision,
@@ -15,8 +16,11 @@ from app.research.evaluation import (
     calculate_metrics,
     evaluate_wr_baselines,
     paired_mae_bootstrap,
+    paired_metric_bootstrap,
     poisson_over_probability,
     select_strongest_baseline,
+    summarize_prediction_bias,
+    summarize_residuals,
     write_baseline_scorecard,
 )
 from app.research.features import (
@@ -77,6 +81,25 @@ def test_count_metrics_calibration_and_poisson_probability_are_explicit():
     assert 0 < poisson_over_probability(4, 4.5) < 1
 
 
+def test_residual_and_prediction_bias_summaries_are_deterministic():
+    actuals = [1.0, 2.0, 3.0, 4.0]
+    learned = [0.0, 2.0, 4.0, 6.0]
+    baseline = [2.0, 3.0, 4.0, 5.0]
+
+    residuals = summarize_residuals(actuals, learned)
+    bias = summarize_prediction_bias(actuals, baseline, learned)
+
+    assert residuals.mean == pytest.approx(0.5)
+    assert residuals.minimum == -1
+    assert residuals.median == pytest.approx(0.5)
+    assert residuals.maximum == 2
+    assert residuals.mean_absolute == 1
+    assert bias.learned_mean_bias == pytest.approx(0.5)
+    assert bias.baseline_mean_bias == 1
+    assert bias.signed_difference == pytest.approx(-0.5)
+    assert bias.absolute_bias_difference == pytest.approx(-0.5)
+
+
 def test_paired_bootstrap_is_seeded_and_reports_significant_improvement():
     actuals = [1.0, 2.0, 3.0, 4.0] * 4
     reference = [value + 3 for value in actuals]
@@ -104,6 +127,53 @@ def test_paired_bootstrap_is_seeded_and_reports_significant_improvement():
     assert first.effect_size == 1
     assert first.effect_size_definition == "relative_mae_improvement"
     assert first.statistically_significant_improvement is True
+
+
+@pytest.mark.parametrize("metric", tuple(ComparisonMetric))
+def test_paired_metric_bootstrap_is_seeded_for_all_required_metrics(metric):
+    actuals = [1.0, 2.0, 3.0, 4.0]
+    baseline = [2.0, 3.0, 4.0, 5.0]
+    learned = [1.0, 2.0, 3.0, 4.0]
+    first = paired_metric_bootstrap(
+        actuals,
+        baseline,
+        learned,
+        metric=metric,
+        poisson_epsilon=1e-12,
+        iterations=40,
+        confidence_level=0.95,
+        random_seed=17,
+    )
+    second = paired_metric_bootstrap(
+        actuals,
+        baseline,
+        learned,
+        metric=metric,
+        poisson_epsilon=1e-12,
+        iterations=40,
+        confidence_level=0.95,
+        random_seed=17,
+    )
+
+    assert first == second
+    assert first.metric is metric
+    assert first.iterations == 40
+    assert first.random_seed == 17
+    assert first.difference <= 0
+
+
+def test_paired_metric_bootstrap_rejects_invalid_inputs():
+    with pytest.raises(ValueError, match="equal, non-empty"):
+        paired_metric_bootstrap(
+            [1.0],
+            [],
+            [1.0],
+            metric=ComparisonMetric.MAE,
+            poisson_epsilon=1e-12,
+            iterations=10,
+            confidence_level=0.95,
+            random_seed=1,
+        )
 
 
 def test_scorecard_is_deterministic_and_contains_governed_research_artifacts(tmp_path):

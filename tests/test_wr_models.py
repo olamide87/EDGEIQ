@@ -29,6 +29,7 @@ from app.research.models import (
     WRPoissonConfig,
     WRPoissonModel,
     chronological_model_split,
+    raw_scale_coefficients,
 )
 from app.research.models.wr_receptions import _solve_linear_system
 from feature_store.registry import WR_FEATURE_REGISTRY
@@ -302,6 +303,20 @@ def test_model_fingerprint_and_serialization_are_canonical():
     tampered["coefficients"][0] += 1
     with pytest.raises(ValidationError, match="fingerprint"):
         WRPoissonModel.from_json(json.dumps(tampered))
+
+
+def test_raw_scale_coefficients_preserve_feature_order():
+    state = _fitted_model().state
+
+    transformed = raw_scale_coefficients(state)
+
+    assert len(transformed) == len(state.config.feature_names)
+    assert transformed == tuple(
+        coefficient / scale
+        for coefficient, scale in zip(
+            state.coefficients, state.feature_scales, strict=True
+        )
+    )
 
 
 def test_learned_evaluation_uses_governed_metrics_and_strongest_baseline(tmp_path):

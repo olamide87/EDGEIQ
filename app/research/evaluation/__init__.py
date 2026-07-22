@@ -14,8 +14,13 @@ from app.research.evaluation.governance import (
 from app.research.evaluation.metrics import (
     CalibrationBin,
     MetricSummary,
+    PredictionBiasSummary,
+    ResidualSummary,
     calculate_metrics,
+    deterministic_quantile,
     poisson_over_probability,
+    summarize_prediction_bias,
+    summarize_residuals,
 )
 from app.research.evaluation.learned import (
     LearnedCandidateResult,
@@ -40,7 +45,27 @@ from app.research.evaluation.scorecard import (
 )
 from app.research.evaluation.statistics import (
     BootstrapComparison,
+    ComparisonMetric,
+    MetricDifferenceInterval,
     paired_mae_bootstrap,
+    paired_metric_bootstrap,
+)
+from app.research.evaluation.rolling import (
+    CoefficientSnapshot,
+    CoefficientStabilitySummary,
+    MetricDifference,
+    RollingEvaluationConfig,
+    RollingEvaluationScorecard,
+    RollingEvaluationWindow,
+    RollingWindowResult,
+    calculate_metric_differences,
+    evaluate_wr_poisson_rolling,
+    summarize_coefficient_stability,
+    write_rolling_scorecard,
+)
+from app.research.evaluation.reporting import (
+    render_rolling_research_report,
+    write_rolling_research_report,
 )
 
 __all__ = [
@@ -48,7 +73,10 @@ __all__ = [
     "BaselineResult",
     "BaselineScorecard",
     "BootstrapComparison",
+    "ComparisonMetric",
     "CalibrationBin",
+    "CoefficientSnapshot",
+    "CoefficientStabilitySummary",
     "GOVERNANCE_V1",
     "EvaluationProtocol",
     "EvaluationPeriod",
@@ -59,6 +87,10 @@ __all__ = [
     "LearnedEvaluationScorecard",
     "LearnedMetricGates",
     "MetricSummary",
+    "PredictionBiasSummary",
+    "ResidualSummary",
+    "MetricDifferenceInterval",
+    "MetricDifference",
     "MetricDefinition",
     "MetricDirection",
     "MetricName",
@@ -66,14 +98,28 @@ __all__ = [
     "PromotionCriteria",
     "PromotionRecommendation",
     "ReproducibilityMetadata",
+    "RollingEvaluationConfig",
+    "RollingEvaluationScorecard",
+    "RollingEvaluationWindow",
+    "RollingWindowResult",
     "ResearchDecision",
     "build_governed_baseline_cohort",
     "calculate_metrics",
+    "calculate_metric_differences",
+    "deterministic_quantile",
     "evaluate_wr_baselines",
+    "evaluate_wr_poisson_rolling",
     "fit_and_evaluate_wr_poisson",
     "paired_mae_bootstrap",
+    "paired_metric_bootstrap",
     "poisson_over_probability",
+    "render_rolling_research_report",
+    "summarize_prediction_bias",
+    "summarize_coefficient_stability",
+    "summarize_residuals",
     "select_strongest_baseline",
     "write_baseline_scorecard",
     "write_learned_scorecard",
+    "write_rolling_scorecard",
+    "write_rolling_research_report",
 ]

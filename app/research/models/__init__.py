@@ -10,6 +10,7 @@ from app.research.models.wr_receptions import (
     WRPoissonModel,
     WRPoissonState,
     chronological_model_split,
+    raw_scale_coefficients,
 )
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "WRPoissonModel",
     "WRPoissonState",
     "chronological_model_split",
+    "raw_scale_coefficients",
 ]

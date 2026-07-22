@@ -1,10 +1,12 @@
-# EDGE IQ v0.6A
+# EDGE IQ v0.6B
 
 EDGE IQ is a typed, local-first research application for NFL player-prop line
 shopping, scheduled authorized-odds ingestion, projection review, and paper-trading
 analytics. v0.6A adds the first deterministic learned WR-receptions research
 candidate on top of the reproducible data, point-in-time feature, baseline, and
-governed evaluation layers.
+governed evaluation layers. v0.6B adds deterministic expanding-window evaluation,
+paired aggregate confidence intervals, model diagnostics, coefficient-stability
+summaries, and reproducible Markdown research reports.
 
 EDGE IQ does not scrape sportsbook sites, automate logins, place wagers, or claim
 that any model or recommendation will be profitable. The Odds API remains the only
@@ -57,6 +59,11 @@ chronologically against the governed v0.5C baselines. See the
 [WR Poisson model note](docs/wr-poisson-model.md). nflverse does not provide
 historical player-prop odds, and projection accuracy does not establish betting
 profitability.
+
+Rolling evaluation uses multiple predeclared, non-overlapping held-out windows. Its
+training cohort expands chronologically, while learned and baseline predictions use
+the same governed rows in every window. Results remain research-only: they cannot
+promote a model or trigger sportsbook or production execution.
 
 ## WR feature engineering
 
