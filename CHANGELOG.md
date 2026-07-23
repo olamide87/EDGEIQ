@@ -2,6 +2,23 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [0.7.0-alpha.1] - Unreleased
+
+### Added
+
+- Runtime Architecture Baseline v1 as the governing contract for future runtime work
+- Component ownership, lifecycle, immutable-history, deterministic-replay,
+  concurrency, security, and dependency guidance
+- Mandatory Architecture Review Gate for future runtime proposals
+- ADR 0007 recording the architecture-only decision and its consequences
+
+### Scope
+
+- Documentation-only; no production code, runtime behavior, APIs, persistence,
+  migrations, execution logic, or runtime dependencies
+- Worker Selection, dispatch, claims, execution, retries, orchestration, and worker
+  lifecycle remain deferred
+
 ## [0.6.0-alpha.2] - Unreleased
 
 ### Added
