@@ -22,3 +22,12 @@ code or prescribe language-level interfaces.
 Supporting documents explain the normative baseline. If they conflict, the baseline
 and ADR control. Worker Selection remains deferred until it passes the Architecture
 Review Gate under the effective baseline.
+
+## Active proposals
+
+- [Worker Selection Foundation](WORKER_SELECTION.md)
+- [Worker Selection Architecture Review Gate](proposals/WORKER_SELECTION_ARCHITECTURE_REVIEW.md)
+- [Proposed ADR 0008](../decisions/0008-worker-selection-foundation.md)
+
+The proposal is design-only. Its review is pending and implementation authority has
+not been granted.
