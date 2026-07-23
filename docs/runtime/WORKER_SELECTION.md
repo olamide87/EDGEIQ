@@ -125,6 +125,7 @@ workloadContextId
 version
 outcome
 candidates[]
+excludedWorkers[]
 inputEvidenceReferences[]
 scoringPolicyVersion
 evaluatorVersion
@@ -179,8 +180,18 @@ reasonCode
 evidenceReferences[]
 ```
 
-Weights and normalization rules belong to a versioned scoring policy. No machine
-learning or opaque score is permitted.
+### WorkerSelectionExclusion
+
+```text
+workerId
+readinessReference
+reasonCodes[]
+evidenceReferences[]
+canonicalHash
+```
+
+Excluded workers are ordered by canonical worker UUID. This history makes eligibility
+decisions explainable without placing excluded workers in the candidate ranking.
 
 ## Outcomes
 
@@ -221,21 +232,49 @@ in rank order.
 
 ## Explainable scoring contract
 
-The first scoring policy may use explicit bounded components such as capability
-match, policy preference, latency, cost, affinity, and load balance. This design does
-not approve weights. A later implementation proposal must pre-register:
+ScoringPolicyV1 uses these components in this exact order:
 
-- every component;
-- its input evidence;
-- normalization and missing-evidence behavior;
-- minimum and maximum values;
-- weight;
-- rounding rule; and
-- reason codes.
+| Component code | Maximum score |
+| --- | ---: |
+| `CAPABILITY_FIT` | 40 |
+| `ORGANIZATION_POLICY_PREFERENCE` | 20 |
+| `LATENCY_OBJECTIVE` | 15 |
+| `COST_PREFERENCE` | 10 |
+| `AFFINITY_PREFERENCE` | 10 |
+| `LOAD_BALANCE` | 5 |
 
-The final score is the deterministic sum of weighted components using a specified
-fixed decimal representation. Binary eligibility constraints must not be hidden
-inside soft score components.
+Required capabilities and hard policy constraints are eligibility gates. They cannot
+be offset by a high score. `CAPABILITY_FIT` scores only versioned preferred
+capabilities after all required capabilities match. Policy preference scores only
+soft preferences after every hard constraint passes.
+
+Each normalized component is a canonical decimal in `[0, 1]`. Values are represented
+as fixed-point integers with six decimal places. Parse canonical decimal strings,
+round the normalized value once using round-half-even at six decimal places, multiply
+by the component's integer maximum, round the weighted result once with the same
+rule, then sum the six rounded component scores. Binary floating point, intermediate
+display rounding, and unspecified precision are prohibited.
+
+Missing optional evidence yields a zero component and a component-specific
+`*_EVIDENCE_MISSING` reason. No machine-learning or opaque score is permitted.
+
+The immutable component registry is an ordered tuple keyed by exact scoring-policy
+version. Filesystem discovery, entry points, import side effects, sets, and unordered
+maps are prohibited. Unknown or duplicate policy versions fail closed.
+
+## Missing-evidence behavior
+
+- Invalid or missing readiness, plan, organization, required-capability, or hard-policy
+  evidence excludes the affected worker.
+- If required evidence prevents evaluation of every worker, return
+  `EvidenceUnavailable`.
+- If hard policy filters every otherwise evaluable worker, return `PolicyFiltered`.
+- If retained evidence is contradictory and policy cannot resolve it, return
+  `Indeterminate`.
+- If at least one eligible worker remains, return `CandidateFound`, rank eligible
+  candidates, and retain excluded workers with deterministic reason codes.
+- `NoEligibleWorkers` is reserved for a valid, complete evidence set containing no
+  readiness-positive worker for the workload context.
 
 ## Determinism and serialization
 
@@ -395,12 +434,28 @@ Security and failure:
 - error output is redacted; and
 - replay and persistence failures cannot appear successful.
 
-## Likely implementation areas after authorization
+## Approved implementation placement after authorization
 
-Repository-specific placement must be confirmed during implementation planning. A
-future proposal may require domain models, a pure evaluator, history and projection
-ports, API composition, tests, and documentation. This design deliberately names no
-implementation files before that inspection and authorization.
+No files are created by this design milestone. If implementation is separately
+authorized, the approved module boundary is:
+
+```text
+app/runtime/worker_selection/
+|-- domain.py
+|-- evaluator.py
+|-- policy.py
+|-- serialization.py
+|-- ports.py
+`-- service.py
+```
+
+Domain, policy, evaluator, and serialization remain pure and cannot depend on
+FastAPI, SQLAlchemy, providers, queues, execution, or concrete persistence. Adapters
+depend inward on protocols in `ports.py`. Future HTTP composition remains in the
+existing application API boundary.
+
+Focused tests belong under `tests/runtime/` and separate domain, evaluator, replay,
+concurrency, and negative-route coverage.
 
 ## Acceptance criteria for design approval
 
@@ -415,7 +470,6 @@ implementation files before that inspection and authorization.
 
 ## Deferred work
 
-- scoring weights and normalization constants;
 - persistence and API implementation;
 - Worker Readiness implementation;
 - dispatch, scheduling, leases, claims, and queues;

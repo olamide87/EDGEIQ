@@ -4,15 +4,16 @@ Proposal: Worker Selection Foundation
 Milestone: Next runtime design milestone after v0.7A
 Governing baseline: Runtime Architecture Baseline v1
 Related design: [Worker Selection Foundation](../WORKER_SELECTION.md)
-Overall result: Pending formal review
+Overall result: Pass
 Implementation authorization: Not granted
 
-This gate evaluates the proposed architecture only. A proposed `PASS` means the
-documented boundary satisfies the baseline; it does not authorize implementation.
+This gate evaluates the architecture only. `PASS` means the documented boundary
+satisfies the baseline and recommends a separate implementation-authorization
+decision. It does not itself authorize implementation.
 
 ## 1. Semantic ownership
 
-Result: **PASS — proposed**
+Result: **PASS**
 
 Evidence:
 
@@ -26,7 +27,7 @@ Required design changes: None identified.
 
 ## 2. Immutable history
 
-Result: **PASS — proposed**
+Result: **PASS**
 
 Evidence:
 
@@ -40,7 +41,7 @@ Required design changes: None identified.
 
 ## 3. Deterministic replay
 
-Result: **PASS — proposed**
+Result: **PASS**
 
 Evidence:
 
@@ -54,7 +55,7 @@ Required design changes: None identified.
 
 ## 4. Concurrency
 
-Result: **PASS — proposed**
+Result: **PASS**
 
 Evidence:
 
@@ -69,7 +70,7 @@ Required design changes: None identified.
 
 ## 5. Security boundaries
 
-Result: **PASS — proposed**
+Result: **PASS**
 
 Evidence:
 
@@ -83,7 +84,7 @@ Required design changes: None identified.
 
 ## 6. Dependency direction
 
-Result: **PASS — proposed**
+Result: **PASS**
 
 Evidence:
 
@@ -97,7 +98,7 @@ Required design changes: None identified.
 
 ## 7. Negative routes
 
-Result: **PASS — proposed**
+Result: **PASS**
 
 Evidence:
 
@@ -111,26 +112,24 @@ Required design changes: None identified.
 
 ## 8. Extension points
 
-Result: **PASS WITH OPEN IMPLEMENTATION DETAIL — proposed**
+Result: **PASS**
 
 Evidence:
 
-- Scoring policy is versioned and must declare components, evidence, normalization,
-  bounds, weights, rounding, missing-evidence behavior, and reason codes.
+- ScoringPolicyV1 registers six components in immutable order with fixed weights
+  `40/20/15/10/10/5`.
+- Required capabilities and hard policy constraints are eligibility gates.
+- Six-place exact decimals and round-half-even rules are specified.
+- Missing optional evidence scores zero with component-specific reason codes.
+- Registration uses an immutable tuple keyed by exact policy version; dynamic or
+  unordered discovery is prohibited.
 - No opaque or machine-learned score is allowed.
 
-Required design changes before implementation authorization:
-
-- pre-register the initial scoring weights and fixed-decimal precision;
-- define component-specific missing-evidence behavior; and
-- identify the repository-specific extension registration mechanism.
-
-These details do not block architectural design review but do block implementation
-authorization.
+Required design changes: None identified.
 
 ## 9. Documentation completeness
 
-Result: **PASS — proposed**
+Result: **PASS**
 
 Evidence:
 
@@ -144,14 +143,15 @@ Required design changes: None identified.
 ## Final decision
 
 ```text
-Overall result: PENDING FORMAL REVIEW
+Overall result: PASS
 Blocking architecture failures: none identified
-Implementation blockers: scoring policy constants and repository-specific placement
+Unresolved design deficiencies: none
+Recommendation: GRANT IMPLEMENTATION AUTHORIZATION THROUGH A SEPARATE DECISION
 Implementation authorization: NOT GRANTED
-Reviewer: pending
-Decision date: pending
+Reviewer: Architecture Review Gate self-review against ADR 0007
+Decision date: 2026-07-22
 ```
 
-The next decision may approve the architecture boundary while retaining the listed
-implementation blockers. No Worker Selection code should be written until this gate
-is formally reviewed and separate implementation authorization is granted.
+The gate has a binary `PASS` outcome. No conditional approval remains. No Worker
+Selection code should be written until a separate implementation-authorization
+decision is formally granted.

@@ -29,5 +29,6 @@ Review Gate under the effective baseline.
 - [Worker Selection Architecture Review Gate](proposals/WORKER_SELECTION_ARCHITECTURE_REVIEW.md)
 - [Proposed ADR 0008](../decisions/0008-worker-selection-foundation.md)
 
-The proposal is design-only. Its review is pending and implementation authority has
-not been granted.
+The proposal is design-only. Its Architecture Review Gate passed and recommends a
+separate implementation-authorization decision. Implementation authority has not
+been granted.

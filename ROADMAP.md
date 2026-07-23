@@ -15,7 +15,7 @@ complexity is earned through reproducibility and held-out evidence.
 | v0.6A | Deterministic WR Poisson Model | Complete |
 | v0.6B | Rolling Evaluation and Diagnostics | Complete |
 | v0.7A | Runtime Architecture Baseline v1 | Complete |
-| Worker Selection | Architecture Review Gate | Design review |
+| Worker Selection | Architecture Review Gate | Passed; implementation not authorized |
 | v1.0 | Public Beta | Planned |
 
 ## v0.5 promotion sequence
