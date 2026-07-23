@@ -10,11 +10,12 @@ complexity is earned through reproducibility and held-out evidence.
 | v0.3 | Projection Quality and Paper Trading | Complete |
 | v0.4 | Automated Data Engine | Complete |
 | v0.5A | Reproducible Data Pipeline | Complete |
-| v0.5B | WR Feature Engineering | In Progress |
-| v0.5C | Baseline Models | Blocked by v0.5B |
-| v0.5D | First ML Models | Blocked by v0.5C |
-| v0.6 | Expanded Intelligence | Planned |
-| v0.7 | Dashboard | Planned |
+| v0.5B | WR Feature Engineering | Complete |
+| v0.5C | Baseline Models | Complete |
+| v0.6A | Deterministic WR Poisson Model | Complete |
+| v0.6B | Rolling Evaluation and Diagnostics | Complete |
+| v0.7A | Runtime Architecture Baseline v1 | Architecture-only |
+| Worker Selection | Architecture Review Gate | Deferred until after v0.7A |
 | v1.0 | Public Beta | Planned |
 
 ## v0.5 promotion sequence
@@ -57,8 +58,10 @@ not a favorable in-sample result.
 
 ## Later releases
 
-- v0.6 expands only validated model families and consumers.
-- v0.7 adds research, calibration, feature, and paper-performance dashboards.
+- v0.6 expands only validated model families and evaluation evidence.
+- v0.7A publishes the governing runtime architecture without production behavior.
+- Worker Selection may enter design review only after v0.7A is effective and must
+  pass the Architecture Review Gate before implementation authorization.
 - v1.0 completes stable API, security, licensing, PostgreSQL, and operations work.
 
 ## Release discipline

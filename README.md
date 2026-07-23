@@ -16,6 +16,18 @@ Project direction and system design are documented in [ROADMAP.md](ROADMAP.md) a
 [ARCHITECTURE.md](ARCHITECTURE.md). Contributions should follow
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Runtime architecture governance
+
+[Runtime Architecture Baseline v1](docs/runtime/RUNTIME_ARCHITECTURE_BASELINE_V1.md)
+governs future EDGEIQ runtime features. It defines semantic ownership, immutable
+history, deterministic replay, concurrency, security, dependency direction, and a
+mandatory [Architecture Review Gate](docs/runtime/ARCHITECTURE_REVIEW_GATE.md).
+
+The v0.7A milestone is architecture-only. Names such as `ExecutionPlan` and
+`WorkerSelection` are conceptual contracts rather than implemented services or API
+types. Worker Selection, dispatch, claims, execution, retries, and production runtime
+services remain deferred.
+
 ## Setup
 
 Python 3.11 or newer is recommended.

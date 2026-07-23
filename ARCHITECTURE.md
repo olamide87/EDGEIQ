@@ -4,6 +4,30 @@ EDGE IQ is designed as a layered, local-first analytics platform. Feed ingestion
 projection logic, market comparison, risk policy, recommendations, and presentation
 remain separate so each layer can evolve independently.
 
+## Governing runtime baseline
+
+Future runtime features are governed by
+[Runtime Architecture Baseline v1](docs/runtime/RUNTIME_ARCHITECTURE_BASELINE_V1.md)
+and [ADR 0007](docs/decisions/0007-runtime-architecture-baseline-v1.md). The baseline
+requires single semantic ownership, append-only history, deterministic replay,
+compare-and-swap concurrency, fail-closed security boundaries, and dependencies only
+on preceding authoritative artifacts.
+
+```mermaid
+flowchart LR
+    Request[Execution Request] --> Validation[Request Validation]
+    Validation --> Plan[Execution Plan]
+    Plan --> Authorization[Authorization Checkpoint]
+    Authorization --> Readiness[Worker Evidence and Readiness - future]
+    Readiness --> Selection[Worker Selection - future]
+    Selection --> Execution[Dispatch, Claim, and Execution - future]
+```
+
+This diagram names conceptual roles, not implemented modules. Worker Selection and
+all downstream runtime behavior remain deferred. Each future runtime proposal must
+pass the [Architecture Review Gate](docs/runtime/ARCHITECTURE_REVIEW_GATE.md) before
+implementation is authorized.
+
 ## Product pipeline
 
 ```mermaid
@@ -161,3 +185,5 @@ instead. Reconciliation is deferred to a dedicated migration decision documented
 - Backward-compatible APIs and forward-only production migrations.
 - Tests and migrations required before merge.
 - No unsupported claims about model quality or profitability.
+- Immutable, deterministic, evidence-backed contracts for future runtime decisions.
+- Architecture Review Gate approval before any future runtime implementation.
