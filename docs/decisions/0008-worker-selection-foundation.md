@@ -22,10 +22,10 @@ codes, immutable selection history, and a derived current pointer. It would not 
 readiness, identity, trust, health, authorization, scheduling, dispatch, queues,
 leases, claims, execution, retries, completion, or worker lifecycle.
 
-Implementation remains unauthorized while the
+The
 [Architecture Review Gate](../runtime/proposals/WORKER_SELECTION_ARCHITECTURE_REVIEW.md)
-is evaluated. Gate passage recommends, but does not itself grant, implementation
-authorization.
+subsequently passed, and a separate implementation-authorization decision granted
+authority for the bounded foundation described by this ADR.
 
 ## Deterministic scoring policy v1
 
@@ -116,6 +116,6 @@ and audit without an opaque ranking model.
 
 ## Governance result
 
-The Architecture Review Gate records `PASS`. No conditional approval remains. This
-ADR accepts the architecture and recommends a separate implementation-authorization
-decision. No Worker Selection implementation is authorized by this ADR or gate.
+The Architecture Review Gate records `PASS`. No conditional approval remains. A
+separate decision subsequently authorized implementation strictly within this ADR;
+the ADR and gate alone did not grant that authority.

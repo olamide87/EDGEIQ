@@ -19,12 +19,12 @@ flowchart LR
     Validation --> Plan[Execution Plan]
     Plan --> Authorization[Authorization Checkpoint]
     Authorization --> Readiness[Worker Evidence and Readiness - future]
-    Readiness --> Selection[Worker Selection - future]
+    Readiness --> Selection[Worker Selection]
     Selection --> Execution[Dispatch, Claim, and Execution - future]
 ```
 
-This diagram names conceptual roles, not implemented modules. Worker Selection and
-all downstream runtime behavior remain deferred. Each future runtime proposal must
+Worker Selection implements candidate ordering only; the other runtime roles remain
+conceptual. All downstream runtime behavior remains deferred. Each future proposal must
 pass the [Architecture Review Gate](docs/runtime/ARCHITECTURE_REVIEW_GATE.md) before
 implementation is authorized.
 

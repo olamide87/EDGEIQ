@@ -23,10 +23,11 @@ governs future EDGEIQ runtime features. It defines semantic ownership, immutable
 history, deterministic replay, concurrency, security, dependency direction, and a
 mandatory [Architecture Review Gate](docs/runtime/ARCHITECTURE_REVIEW_GATE.md).
 
-The v0.7A milestone is architecture-only. Names such as `ExecutionPlan` and
-`WorkerSelection` are conceptual contracts rather than implemented services or API
-types. Worker Selection, dispatch, claims, execution, retries, and production runtime
-services remain deferred.
+The v0.7A baseline remains architecture-only. Worker Selection is implemented under
+ADR 0008 as a bounded foundation for deterministic, explainable candidate ordering.
+Its reference history adapter is process-local and is not production persistence.
+Dispatch, claims, leases, queues, execution, retries, orchestration, and production
+runtime services remain deferred.
 
 ## Setup
 

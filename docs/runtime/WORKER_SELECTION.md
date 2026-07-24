@@ -1,12 +1,12 @@
 # Worker Selection Foundation
 
-Status: Proposed design
+Status: Accepted and implemented foundation
 Governing baseline: [Runtime Architecture Baseline v1](RUNTIME_ARCHITECTURE_BASELINE_V1.md)
 Review: [Worker Selection Architecture Review Gate](proposals/WORKER_SELECTION_ARCHITECTURE_REVIEW.md)
 
-> **Conceptual-contract notice:** Interface and model names define semantic roles.
-> They do not yet authorize Python classes, endpoints, persistence tables, or runtime
-> services.
+The implemented Python records and interfaces realize these semantic roles without
+expanding them. The included in-memory history adapter provides deterministic
+foundation and test semantics only; durable distributed persistence remains deferred.
 
 ## Mission
 
@@ -376,9 +376,9 @@ Stable domain errors:
 
 Errors fail closed and never produce a partial successful selection.
 
-## Future API boundary
+## API boundary
 
-Potential read/evaluate routes:
+Implemented read/evaluate routes:
 
 ```text
 POST /worker-selection/evaluate
@@ -387,8 +387,7 @@ GET  /worker-selection/{selectionId}/history
 GET  /worker-selection?workloadId={workloadContextId}
 ```
 
-This design does not authorize API implementation. The following routes must not
-exist on a selection-only service and must return `404` if requested:
+The following routes do not exist on the selection-only service and return `404`:
 
 ```text
 /dispatch
