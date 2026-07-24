@@ -4,7 +4,7 @@ Document Status: Current
 
 Applies To: `main @ ae9e80a`
 
-Last Updated: YYYY-MM-DD
+Last Updated: 2026-07-24
 
 Maintainers: EDGEIQ Maintainers
 
