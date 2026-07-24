@@ -11,13 +11,16 @@ All notable changes are documented here. The project follows semantic versioning
   concurrency, security, and dependency guidance
 - Mandatory Architecture Review Gate for future runtime proposals
 - ADR 0007 recording the architecture-only decision and its consequences
+- deterministic, explainable Worker Selection scoring and candidate ordering
+- immutable selection history, replay metadata, idempotency, and expected-version CAS
+- selection-only evaluate, read, history, and current-pointer API routes
 
 ### Scope
 
-- Documentation-only; no production code, runtime behavior, APIs, persistence,
-  migrations, execution logic, or runtime dependencies
-- Worker Selection, dispatch, claims, execution, retries, orchestration, and worker
-  lifecycle remain deferred
+- Runtime Architecture Baseline v1 remains documentation-only
+- Worker Selection is limited to candidate ordering with process-local reference
+  history; durable persistence, dispatch, claims, execution, retries, orchestration,
+  and worker lifecycle remain deferred
 
 ## [0.6.0-alpha.2] - Unreleased
 

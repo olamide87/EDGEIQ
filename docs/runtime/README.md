@@ -20,15 +20,16 @@ code or prescribe language-level interfaces.
 - [Runtime Dependency Rules](RUNTIME_DEPENDENCY_RULES.md)
 
 Supporting documents explain the normative baseline. If they conflict, the baseline
-and ADR control. Worker Selection remains deferred until it passes the Architecture
-Review Gate under the effective baseline.
+and ADR control. Worker Selection passed the Architecture Review Gate and received
+separate implementation authorization. Its in-memory history adapter is a reference
+foundation, not production persistence.
 
-## Active proposals
+## Governed runtime features
 
 - [Worker Selection Foundation](WORKER_SELECTION.md)
 - [Worker Selection Architecture Review Gate](proposals/WORKER_SELECTION_ARCHITECTURE_REVIEW.md)
-- [Proposed ADR 0008](../decisions/0008-worker-selection-foundation.md)
+- [ADR 0008](../decisions/0008-worker-selection-foundation.md)
 
-The proposal is design-only. Its Architecture Review Gate passed and recommends a
-separate implementation-authorization decision. Implementation authority has not
-been granted.
+Worker Selection is implemented within ADR 0008's candidate-ordering boundary.
+Dispatch, scheduling, claims, leases, queues, execution, retries, and orchestration
+remain outside its authority.

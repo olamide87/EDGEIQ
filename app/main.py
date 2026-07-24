@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from app.api import router
 from app.paper_api import router as paper_router
 from app.ingestion_api import router as ingestion_router
+from app.worker_selection_api import router as worker_selection_router
 from app.config import settings
 from app.logging_config import configure_logging
 from app.scheduler import build_scheduler
@@ -37,4 +38,5 @@ app = FastAPI(
 app.include_router(router)
 app.include_router(paper_router)
 app.include_router(ingestion_router)
+app.include_router(worker_selection_router)
 configure_logging()
