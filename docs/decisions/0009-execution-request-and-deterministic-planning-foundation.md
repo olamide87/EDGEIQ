@@ -101,18 +101,33 @@ implementation convenience.
 - request-level constraints;
 - request provenance;
 - organization and workload context;
+- stable idempotency identity associated with the accepted request;
 - request schema identity and version; and
 - canonical request content and digest.
+
+The accepted idempotency identity is immutable planning evidence. Request Intake
+retains ownership of receiving, validating, and capturing the submitted idempotency
+key and of admission policy. Recording the resulting stable identity on the accepted
+request transfers neither admission-policy ownership nor idempotency capture into
+Execution Planning.
 
 ### Execution Plan owns only
 
 - deterministic interpretation of one valid request;
 - ordered or explicitly structured planned work;
 - required capabilities, resources, and work-unit dependencies;
+- immutable, deterministically interpreted plan-level constraints;
 - immutable references used by planning;
 - plan schema and planning-rule versions;
 - derivation evidence; and
 - deterministic reconstruction inputs and plan digest.
+
+Request-level constraints remain authoritative properties of the Execution Request.
+Plan-level constraints are normalized planning consequences derived
+deterministically from those request constraints and accepted planning rules. They
+must not contain worker readiness, selected-worker identity, dispatch eligibility,
+claim or lease state, retry or monitoring state, execution progress, or completion
+state.
 
 ### Ownership explicitly preserved
 
@@ -298,7 +313,7 @@ Failure records diagnostics without changing request, plan, or history.
 
 ## Atomicity
 
-The atomic ownership boundary is one organization-scoped request-planning stream.
+The atomic persistence boundary is one organization-scoped request-planning stream.
 Successful planning admission atomically records:
 
 - the accepted canonical Execution Request;
@@ -306,6 +321,11 @@ Successful planning admission atomically records:
 - the canonical Execution Plan;
 - plan derivation evidence and digests; and
 - the committed current-plan pointer, if such a pointer is maintained.
+
+Transaction co-location coordinates recording only; it does not combine semantic
+ownership or transfer authority. Request Intake, Request Validation, and Execution
+Planning retain their separate ownership when their artifacts share this atomic
+admission-and-recording boundary.
 
 The operation is not successful and exposes no committed plan when any required
 artifact cannot be recorded. The design prohibits:
@@ -446,6 +466,7 @@ immutable_references
 required_capabilities
 resource_requirements
 work_unit_dependencies
+plan_level_constraints
 policy_version_or_digest
 canonical_input_digest
 canonical_digest
