@@ -14,3 +14,4 @@ rewrite accepted decisions.
 - [0006: Point-in-time feature semantics](0006-point-in-time-feature-semantics.md)
 - [0007: Runtime Architecture Baseline v1](0007-runtime-architecture-baseline-v1.md)
 - [0008: Worker Selection Foundation](0008-worker-selection-foundation.md)
+- [0009: Execution Request and Deterministic Planning Foundation](0009-execution-request-and-deterministic-planning-foundation.md)
