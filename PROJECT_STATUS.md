@@ -28,8 +28,9 @@ The Runtime Architecture Baseline is now effective, and the Worker Selection Fou
 
 ADR 0009 is present on `main` with status Proposed and its Architecture Review Gate
 has passed. A separate authorization permits implementation of the request-only
-v0.9A Execution Request Foundation slice. That implementation is not yet merged.
-Deterministic planning and every downstream runtime behavior remain unauthorized.
+v0.9A Execution Request Foundation slice. That implementation is under review in
+Draft PR #20 and is not yet merged. Deterministic planning and every downstream
+runtime behavior remain unauthorized.
 
 ---
 
@@ -154,17 +155,25 @@ Deferred capabilities require future planning and, where applicable, architectur
 # Current Risks
 
 - Selection history adapter remains process-local.
+- The proposed Execution Request adapter is also process-local; durable persistence
+  remains deferred.
 - No end-to-end task execution path exists.
-- Prototype readiness cannot be declared until roadmap reconciliation is complete.
-- Future runtime milestones have not yet been authorized.
+- Prototype readiness depends on satisfying every acceptance criterion defined in
+  `ROADMAP.md`; v0.9A alone is insufficient.
+- Deterministic planning and downstream runtime milestones remain unauthorized.
 
 ---
 
-# Current Blockers
+# Current Review State
 
-- Repository roadmap has not yet been reconciled with `main`.
-- Prototype acceptance criteria have not been formally defined.
-- The next runtime milestone has not yet been selected through governance.
+- Roadmap reconciliation is complete.
+- Objective Prototype Acceptance Criteria are defined in `ROADMAP.md`.
+- ADR 0009 is merged, remains Proposed, and its Architecture Review Gate passed.
+- v0.9A Execution Request Foundation is explicitly authorized and is undergoing
+  implementation review in Draft PR #20.
+- v0.9A does not authorize deterministic planning, Worker Selection changes, or any
+  downstream runtime layer.
+- Further implementation requires separate explicit authorization.
 
 ---
 

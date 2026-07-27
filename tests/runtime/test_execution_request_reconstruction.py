@@ -3,6 +3,7 @@ from dataclasses import replace
 import pytest
 
 from app.runtime.execution_request.domain import (
+    ExecutionRequest,
     ExecutionRequestDigestMismatch,
     ExecutionRequestNotFound,
     ExecutionRequestReconstructionFailed,
@@ -11,11 +12,28 @@ from app.runtime.execution_request.domain import (
 )
 from app.runtime.execution_request.ports import ExecutionRequestRecord
 from app.runtime.execution_request.serialization import reconstruct_execution_request
-from app.runtime.execution_request.service import (
-    ExecutionRequestService,
-    InMemoryExecutionRequestRepository,
-)
+from app.runtime.execution_request.service import ExecutionRequestService
 from tests.runtime.test_execution_request_domain import draft
+
+
+class StaticRecordRepository:
+    def __init__(self, record: ExecutionRequestRecord) -> None:
+        self.retained_record = record
+
+    def admit(
+        self, record: ExecutionRequestRecord
+    ) -> tuple[ExecutionRequest, bool]:
+        raise AssertionError("Admission is not used by this reconstruction test.")
+
+    def get(self, request_id: str) -> ExecutionRequest | None:
+        if request_id == self.retained_record.request.request_id:
+            return self.retained_record.request
+        return None
+
+    def record(self, request_id: str) -> ExecutionRequestRecord | None:
+        if request_id == self.retained_record.request.request_id:
+            return self.retained_record
+        return None
 
 
 def accepted_service() -> tuple[ExecutionRequestService, str]:
@@ -91,15 +109,15 @@ def test_malformed_payload_reference_fails_closed() -> None:
 
 
 def test_retained_request_and_content_divergence_fails_closed() -> None:
-    repository = InMemoryExecutionRequestRepository()
-    service = ExecutionRequestService(repository)
-    accepted = service.admit(draft(), idempotency_key="request-1").request
-    record = repository.record(accepted.request_id)
+    source_service = ExecutionRequestService()
+    accepted = source_service.admit(draft(), idempotency_key="request-1").request
+    record = source_service.repository.record(accepted.request_id)
     assert record is not None
-    repository._by_id[accepted.request_id] = ExecutionRequestRecord(
+    forged = ExecutionRequestRecord(
         request=replace(accepted, requested_work_type="changed"),
         canonical_content=record.canonical_content,
     )
+    service = ExecutionRequestService(StaticRecordRepository(forged))
     with pytest.raises(ExecutionRequestDigestMismatch):
         service.reconstruct(accepted.request_id, organization_id="org-1")
 
