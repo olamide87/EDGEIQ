@@ -2,9 +2,9 @@
 
 Document Status: Current
 
-Applies To: `main @ 386fa49`
+Applies To: `main @ 7e210cc`
 
-Last Updated: 2026-07-26
+Last Updated: 2026-07-27
 
 Maintainers: EDGEIQ Maintainers
 
@@ -12,25 +12,28 @@ Maintainers: EDGEIQ Maintainers
 
 # Current Release
 
-**v0.8 — Worker Selection Foundation**
+**v0.9A — Execution Request Foundation**
 
 ---
 
 # Current State
 
-The Worker Selection Foundation has been merged into `main`.
+The v0.9A Execution Request Foundation has been squash-merged into `main` through
+PR #20.
 
 Merge Commit:
 
-`ae9e80a`
+`7e210cc976b1c79644b2d5bd2fdf3ece7a5c39cf`
 
-The Runtime Architecture Baseline is now effective, and the Worker Selection Foundation is part of the primary runtime.
+The implementation adds only the immutable Execution Request foundation:
+deterministic canonicalization and digests, immutable accepted requests, idempotent
+and concurrency-safe admission, organization-isolated retrieval, and fail-closed
+reconstruction.
 
 ADR 0009 is present on `main` with status Proposed and its Architecture Review Gate
-has passed. A separate authorization permits implementation of the request-only
-v0.9A Execution Request Foundation slice. That implementation is under review in
-Draft PR #20 and is not yet merged. Deterministic planning and every downstream
-runtime behavior remain unauthorized.
+has passed. The v0.9A Implementation Review Gate and CI passed before merge.
+Deterministic execution planning remains unauthorized. Worker Selection changes and
+all downstream runtime layers remain outside v0.9A.
 
 ---
 
@@ -43,6 +46,9 @@ runtime behavior remain unauthorized.
 - ✅ Worker Selection Foundation
 - ✅ Review
 - ✅ Merge into `main`
+- ✅ v0.9A Execution Request Foundation authorization
+- ✅ v0.9A Implementation Review Gate
+- ✅ v0.9A squash merge through PR #20
 
 These milestones are complete and considered part of the repository baseline.
 
@@ -54,12 +60,23 @@ These milestones are complete and considered part of the repository baseline.
 |----------|--------|
 | ADR 0007 — Runtime Architecture Baseline v1 | Effective |
 | ADR 0008 — Worker Selection | Accepted |
+| ADR 0009 — Execution Request and Deterministic Planning Foundation | Proposed |
 | Runtime Architecture | Baseline Established |
 | Architecture Review Gate | PASS |
+| v0.9A Implementation Review Gate | PASS |
 
 ---
 
 # Implemented Capabilities
+
+## Execution Request Foundation
+
+- Immutable accepted Execution Request contracts
+- Deterministic canonical serialization, identities, and SHA-256 digests
+- Scoped idempotency with explicit equivalent and conflict behavior
+- Atomic, concurrency-safe process-local admission
+- Organization-isolated retrieval
+- Fail-closed reconstruction and retained-content verification
 
 ## Worker Selection
 
@@ -101,7 +118,8 @@ These milestones are complete and considered part of the repository baseline.
 | Validation | Status |
 |------------|--------|
 | Worker Selection tests | 31 passed |
-| Full test suite | 192 passed |
+| Execution Request tests | 34 passed |
+| Full test suite | 226 passed |
 | Python compilation | PASS |
 | CI | PASS |
 | `git diff --check` | PASS |
@@ -155,8 +173,8 @@ Deferred capabilities require future planning and, where applicable, architectur
 # Current Risks
 
 - Selection history adapter remains process-local.
-- The proposed Execution Request adapter is also process-local; durable persistence
-  remains deferred.
+- The Execution Request adapter is process-local; durable persistence remains
+  deferred.
 - No end-to-end task execution path exists.
 - Prototype readiness depends on satisfying every acceptance criterion defined in
   `ROADMAP.md`; v0.9A alone is insufficient.
@@ -164,24 +182,26 @@ Deferred capabilities require future planning and, where applicable, architectur
 
 ---
 
-# Current Review State
+# Current Governance State
 
 - Roadmap reconciliation is complete.
 - Objective Prototype Acceptance Criteria are defined in `ROADMAP.md`.
 - ADR 0009 is merged, remains Proposed, and its Architecture Review Gate passed.
-- v0.9A Execution Request Foundation is explicitly authorized and is undergoing
-  implementation review in Draft PR #20.
-- v0.9A does not authorize deterministic planning, Worker Selection changes, or any
-  downstream runtime layer.
+- v0.9A Execution Request Foundation was explicitly authorized, passed its
+  Implementation Review Gate, passed CI, and was squash-merged through PR #20.
+- The completed v0.9A implementation is limited to the immutable Execution Request
+  foundation.
+- Deterministic execution planning remains unauthorized.
+- Worker Selection changes and downstream runtime layers remain outside v0.9A.
 - Further implementation requires separate explicit authorization.
 
 ---
 
-# Authorized Current Activity
+# Completed v0.9A Scope
 
 ## v0.9A — Execution Request Foundation
 
-Authorized scope:
+Merged scope:
 
 1. Immutable accepted Execution Request contracts.
 2. Deterministic canonicalization, identities, and digest verification.
@@ -189,11 +209,11 @@ Authorized scope:
 4. Fail-closed reconstruction from retained canonical content.
 5. Persistence abstractions and reference adapters required by this slice.
 
-**Only this request foundation slice is authorized for implementation.**
+**Only this request foundation slice was authorized and merged.**
 
 Execution Plans, deterministic planning, Worker Selection changes, dispatch, claims,
 leases, execution, retries, monitoring, completion, and orchestration are not
-authorized by this status document or by the v0.9A authorization.
+authorized by this merge. No v0.9B implementation is authorized.
 
 ---
 
