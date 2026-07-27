@@ -71,8 +71,10 @@ promotion is authorized; learned models remain governed research candidates.
 - v0.8 delivered Worker Selection Foundation as deterministic, explainable candidate
   ordering with process-local reference history. Durable distributed persistence and
   downstream runtime effects remain deferred.
-- Execution Request and Deterministic Planning Foundation is the proposed next
-  runtime milestone. It is planning-only and is not authorized for implementation.
+- ADR 0009 defines the proposed Execution Request and Deterministic Planning
+  Foundation. Its Architecture Review Gate passed. A separate authorization permits
+  only the v0.9A Execution Request Foundation slice; deterministic planning remains
+  unauthorized.
 - v1.0 and later items remain future planning. Release labels do not establish or
   substitute for the objective Prototype acceptance criteria below.
 
@@ -120,34 +122,34 @@ independently reproducible automated validation:
 
 Partial fulfillment is roadmap progress, not Prototype completion.
 
-## Proposed next runtime milestone
+## Authorized runtime milestone
 
-### Execution Request and Deterministic Planning Foundation
+### v0.9A — Execution Request Foundation
 
-This is the smallest proposed runtime milestone that supplies authoritative upstream
-artifacts already expected by Worker Selection:
+This is the smallest authorized runtime slice supplying the first authoritative
+upstream artifact expected by later deterministic planning:
 
 ```text
-Execution Request -> Validation -> Execution Plan
+Request Intake -> Execution Request admission
 ```
 
-The proposed milestone would define immutable request, workload-requirement, and plan
-contracts; deterministic validation and planning; canonical serialization, hashes,
-and identifiers; append-only reference history; replay metadata; scoped idempotency;
-compare-and-swap concurrency; organization isolation; stable failure behavior; and
-submit/read/history service boundaries.
+The authorized slice defines immutable accepted-request contracts; deterministic
+canonical serialization, hashes, and identifiers; scoped idempotency; atomic,
+concurrency-safe admission; stable failure behavior; and fail-closed reconstruction
+from retained canonical content.
 
-It would not select workers, schedule, dispatch, claim, lease, execute, retry,
+It does not implement Execution Plans or deterministic planning. It also does not
+select workers, schedule, dispatch, claim, lease, execute, retry, monitor,
 orchestrate, invoke providers, or change worker identity or readiness ownership.
 
-This proposal is planning-only. It is not authorized for implementation. Because it
-introduces new authoritative runtime artifacts and semantic owners, it requires:
+ADR 0009 remains Proposed. The request-only slice received a separate explicit
+implementation authorization after its Architecture Review Gate passed. That
+authorization does not extend to deterministic planning or downstream runtime
+behavior.
 
-1. a new ADR;
-2. a completed Architecture Review Gate with a binary `PASS`; and
-3. a separate explicit implementation-authorization decision after the gate passes.
-
-No implementation may begin by implication from this roadmap.
+Future implementation of deterministic planning requires its own separate explicit
+authorization. No additional implementation may begin by implication from this
+roadmap.
 
 ## Roadmap governance
 
