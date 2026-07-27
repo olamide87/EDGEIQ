@@ -2,9 +2,9 @@
 
 Document Status: Current
 
-Applies To: `main @ ae9e80a`
+Applies To: `main @ 386fa49`
 
-Last Updated: 2026-07-24
+Last Updated: 2026-07-26
 
 Maintainers: EDGEIQ Maintainers
 
@@ -25,6 +25,12 @@ Merge Commit:
 `ae9e80a`
 
 The Runtime Architecture Baseline is now effective, and the Worker Selection Foundation is part of the primary runtime.
+
+ADR 0009 is present on `main` with status Proposed and its Architecture Review Gate
+has passed. A separate authorization permits implementation of the request-only
+v0.9A Execution Request Foundation slice. That implementation is under review in
+Draft PR #20 and is not yet merged. Deterministic planning and every downstream
+runtime behavior remain unauthorized.
 
 ---
 
@@ -149,35 +155,45 @@ Deferred capabilities require future planning and, where applicable, architectur
 # Current Risks
 
 - Selection history adapter remains process-local.
+- The proposed Execution Request adapter is also process-local; durable persistence
+  remains deferred.
 - No end-to-end task execution path exists.
-- Prototype readiness cannot be declared until roadmap reconciliation is complete.
-- Future runtime milestones have not yet been authorized.
+- Prototype readiness depends on satisfying every acceptance criterion defined in
+  `ROADMAP.md`; v0.9A alone is insufficient.
+- Deterministic planning and downstream runtime milestones remain unauthorized.
 
 ---
 
-# Current Blockers
+# Current Review State
 
-- Repository roadmap has not yet been reconciled with `main`.
-- Prototype acceptance criteria have not been formally defined.
-- The next runtime milestone has not yet been selected through governance.
+- Roadmap reconciliation is complete.
+- Objective Prototype Acceptance Criteria are defined in `ROADMAP.md`.
+- ADR 0009 is merged, remains Proposed, and its Architecture Review Gate passed.
+- v0.9A Execution Request Foundation is explicitly authorized and is undergoing
+  implementation review in Draft PR #20.
+- v0.9A does not authorize deterministic planning, Worker Selection changes, or any
+  downstream runtime layer.
+- Further implementation requires separate explicit authorization.
 
 ---
 
-# Authorized Next Activity
+# Authorized Current Activity
 
-## Roadmap Reconciliation (Planning Only)
+## v0.9A — Execution Request Foundation
 
 Authorized scope:
 
-1. Verify `ROADMAP.md` against mainline commit `ae9e80a`.
-2. Define objective prototype acceptance criteria.
-3. Identify the smallest next runtime milestone.
-4. Determine whether the proposed milestone introduces new architectural capability.
-5. Route any new architectural capability through an ADR and Architecture Review Gate before implementation authorization.
+1. Immutable accepted Execution Request contracts.
+2. Deterministic canonicalization, identities, and digest verification.
+3. Idempotent, concurrency-safe request admission.
+4. Fail-closed reconstruction from retained canonical content.
+5. Persistence abstractions and reference adapters required by this slice.
 
-**Planning only is authorized.**
+**Only this request foundation slice is authorized for implementation.**
 
-No implementation work, milestone execution, or architectural change is authorized by this status document.
+Execution Plans, deterministic planning, Worker Selection changes, dispatch, claims,
+leases, execution, retries, monitoring, completion, and orchestration are not
+authorized by this status document or by the v0.9A authorization.
 
 ---
 
