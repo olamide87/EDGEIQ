@@ -159,4 +159,3 @@ class InMemoryRequestValidationEvidenceRepository:
     ) -> RequestValidationEvidence | None:
         with self._lock:
             return self._by_id.get(validation_evidence_id)
-
