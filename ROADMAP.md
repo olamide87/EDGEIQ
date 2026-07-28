@@ -17,7 +17,8 @@ complexity is earned through reproducibility and held-out evidence.
 | v0.6B | Rolling Evaluation and Diagnostics | Complete |
 | v0.7A | Runtime Architecture Baseline v1 | Complete |
 | v0.8 | Worker Selection Foundation | Complete |
-| Next runtime milestone | Execution Request and Deterministic Planning Foundation | Proposed; planning only |
+| v0.9A | Execution Request Foundation | Complete |
+| v0.9B | Immutable Execution Plan Foundation | Authorized implementation candidate; under review |
 | v1.0 | Public Beta | Planned |
 
 ## v0.5 promotion sequence
@@ -73,8 +74,12 @@ promotion is authorized; learned models remain governed research candidates.
   downstream runtime effects remain deferred.
 - ADR 0009 defines the proposed Execution Request and Deterministic Planning
   Foundation. Its Architecture Review Gate passed. A separate authorization permits
-  only the v0.9A Execution Request Foundation slice; deterministic planning remains
-  unauthorized.
+  the completed v0.9A Execution Request Foundation slice and a later, separately
+  bounded authorization permits only the v0.9B immutable Execution Plan foundation
+  implementation candidate.
+- ADR 0010 remains Proposed and constrains v0.9B to the effective runtime dependency,
+  transition-ownership, immutable-evidence, reconstruction, concurrency, and
+  fail-closed boundaries. It authorizes no implementation by itself.
 - v1.0 and later items remain future planning. Release labels do not establish or
   substitute for the objective Prototype acceptance criteria below.
 
@@ -147,9 +152,31 @@ implementation authorization after its Architecture Review Gate passed. That
 authorization does not extend to deterministic planning or downstream runtime
 behavior.
 
-Future implementation of deterministic planning requires its own separate explicit
-authorization. No additional implementation may begin by implication from this
-roadmap.
+Any deterministic planning beyond the bounded v0.9B candidate requires its own
+separate explicit authorization. No additional implementation may begin by
+implication from this roadmap.
+
+### v0.9B — Immutable Execution Plan Foundation
+
+The separately authorized implementation candidate is limited to:
+
+```text
+Accepted Execution Request -> Immutable deterministic Execution Plan
+```
+
+The candidate defines immutable plan contracts; deterministic construction from
+retained accepted request evidence; canonical input and plan serialization, digests,
+and identities; exact planning-rule, policy, configuration, and schema versions;
+append-only process-local reference history; scoped idempotency; expected-version
+compare-and-swap; atomic publication; and fail-closed reconstruction.
+
+The candidate remains subject to Implementation Review Gate, CI, and merge review.
+It is not complete and does not make ADR 0009 or ADR 0010 Accepted.
+
+It does not implement or change Worker Readiness, Worker Selection, Authorization
+Checkpoint, leases, queues, dispatch, claims, attempts, execution, monitoring,
+completion, retries, scheduling, orchestration, providers, models, or external side
+effects. Those capabilities remain unauthorized.
 
 ## Roadmap governance
 
