@@ -161,14 +161,18 @@ implication from this roadmap.
 The separately authorized implementation candidate is limited to:
 
 ```text
-Accepted Execution Request -> Immutable deterministic Execution Plan
+Accepted Execution Request + retained valid Request Validation evidence
+    -> registered versioned planning rule
+    -> Immutable deterministic Execution Plan
 ```
 
-The candidate defines immutable plan contracts; deterministic construction from
-retained accepted request evidence; canonical input and plan serialization, digests,
-and identities; exact planning-rule, policy, configuration, and schema versions;
-append-only process-local reference history; scoped idempotency; expected-version
-compare-and-swap; atomic publication; and fail-closed reconstruction.
+The candidate defines immutable plan contracts; deterministic derivation owned by a
+registered versioned planning rule consuming retained accepted request and Request
+Validation evidence plus immutable policy/configuration inputs; canonical input and
+plan serialization, digests, and identities; exact planning-rule, policy,
+configuration, and schema versions; append-only process-local reference history;
+scoped idempotency; expected-version compare-and-swap; atomic publication; and
+fail-closed reconstruction.
 
 The candidate remains subject to Implementation Review Gate, CI, and merge review.
 It is not complete and does not make ADR 0009 or ADR 0010 Accepted.

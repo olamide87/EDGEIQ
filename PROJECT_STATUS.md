@@ -88,7 +88,9 @@ These milestones are complete and considered part of the repository baseline.
 ## Candidate Execution Plan Foundation (Not Merged)
 
 - Immutable, organization-scoped Execution Plan contracts
-- Deterministic construction from retained accepted Execution Requests
+- Deterministic construction by a registered versioned rule from retained accepted
+  Execution Requests, retained Request Validation evidence, and immutable
+  policy/configuration inputs
 - Canonical input and plan serialization, identities, and SHA-256 digests
 - Plan schema, planning-rule, policy, and configuration version retention
 - Append-only process-local reference history and current projection
@@ -249,8 +251,9 @@ authorized by the v0.9A merge.
 
 Authorized implementation-review scope:
 
-1. Immutable Execution Plan contracts derived from one retained accepted Execution
-   Request.
+1. Immutable Execution Plan contracts derived by a registered versioned rule from
+   one retained accepted Execution Request, its retained valid Request Validation
+   evidence, and immutable policy/configuration inputs.
 2. Deterministic canonical input and plan serialization, identities, and digests.
 3. Plan schema, planning-rule, policy, and configuration version retention.
 4. Scoped idempotency, expected-version concurrency, and append-only reference

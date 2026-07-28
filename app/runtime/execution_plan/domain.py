@@ -4,9 +4,6 @@ from enum import Enum
 from types import MappingProxyType
 from typing import Any, Mapping
 
-from app.runtime.execution_request.domain import ExecutionRequest
-
-
 SUPPORTED_PLAN_SCHEMA_VERSION = "execution-plan.v1"
 SUPPORTED_PLANNING_RULE_VERSION = "execution-plan.rule.v1"
 SUPPORTED_PLANNER_VERSION = "execution-plan.planner.v1"
@@ -233,24 +230,91 @@ class PlanReconstructionMetadata:
 
 
 @dataclass(frozen=True)
-class ExecutionPlanDraft:
-    request: ExecutionRequest
-    structured_planned_work: tuple[PlanStep, ...]
-    capability_requirements: tuple[str, ...]
-    resource_requirements: Mapping[str, Any]
-    declared_dependencies: tuple[PlanDependency, ...]
-    normalized_plan_constraints: Mapping[str, Any]
-    planning_configuration_digest: str
-    policy_version_or_digest: str
-    derivation_evidence: tuple[str, ...]
-    reconstruction_metadata: PlanReconstructionMetadata
+class PlanningPolicy:
+    policy_version: str
+    required_capabilities: tuple[str, ...] = ()
+    resource_requirements: Mapping[str, Any] = field(
+        default_factory=immutable_mapping
+    )
+    plan_constraint_defaults: Mapping[str, Any] = field(
+        default_factory=immutable_mapping
+    )
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "policy_version",
+            _required_text(self.policy_version, "policy_version"),
+        )
+        object.__setattr__(
+            self,
+            "required_capabilities",
+            _unique_sorted(
+                self.required_capabilities, "required_capabilities"
+            ),
+        )
+        object.__setattr__(
+            self,
+            "resource_requirements",
+            immutable_mapping(self.resource_requirements),
+        )
+        object.__setattr__(
+            self,
+            "plan_constraint_defaults",
+            immutable_mapping(self.plan_constraint_defaults),
+        )
+
+
+@dataclass(frozen=True)
+class PlanningConfiguration:
+    configuration_version: str
+    work_step_id: str = "work"
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "configuration_version",
+            _required_text(
+                self.configuration_version, "configuration_version"
+            ),
+        )
+        object.__setattr__(
+            self,
+            "work_step_id",
+            _required_text(self.work_step_id, "work_step_id"),
+        )
+
+
+@dataclass(frozen=True)
+class ExecutionPlanningInput:
+    organization_id: str
+    workload_context_id: str
+    request_id: str
+    validation_evidence_id: str
+    policy: PlanningPolicy
+    configuration: PlanningConfiguration
     plan_schema_version: str = SUPPORTED_PLAN_SCHEMA_VERSION
     planning_rule_version: str = SUPPORTED_PLANNING_RULE_VERSION
 
     def __post_init__(self) -> None:
-        if not isinstance(self.request, ExecutionRequest):
-            raise ExecutionPlanRequestInvalid(
-                "An accepted ExecutionRequest is required."
+        for field_name in (
+            "organization_id",
+            "workload_context_id",
+            "validation_evidence_id",
+        ):
+            object.__setattr__(
+                self,
+                field_name,
+                _required_text(getattr(self, field_name), field_name),
+            )
+        object.__setattr__(
+            self, "request_id", _sha256_hex(self.request_id, "request_id")
+        )
+        if not isinstance(self.policy, PlanningPolicy):
+            raise ExecutionPlanInvalid("A versioned planning policy is required.")
+        if not isinstance(self.configuration, PlanningConfiguration):
+            raise ExecutionPlanInvalid(
+                "A versioned planning configuration is required."
             )
         if self.plan_schema_version != SUPPORTED_PLAN_SCHEMA_VERSION:
             raise ExecutionPlanSchemaVersionUnsupported(
@@ -260,120 +324,6 @@ class ExecutionPlanDraft:
             raise ExecutionPlanRuleVersionUnsupported(
                 "Unsupported planning-rule version: "
                 f"{self.planning_rule_version}."
-            )
-        try:
-            steps = tuple(self.structured_planned_work)
-        except TypeError as exc:
-            raise ExecutionPlanInvalid(
-                "Structured planned work must be an iterable."
-            ) from exc
-        if not steps:
-            raise ExecutionPlanInvalid(
-                "At least one planned work step is required."
-            )
-        if any(not isinstance(step, PlanStep) for step in steps):
-            raise ExecutionPlanInvalid(
-                "Structured planned work must contain PlanStep values."
-            )
-        expected_sequences = tuple(range(len(steps)))
-        if tuple(step.sequence for step in steps) != expected_sequences:
-            raise ExecutionPlanInvalid(
-                "Plan steps must be ordered by contiguous zero-based sequence."
-            )
-        step_ids = tuple(step.step_id for step in steps)
-        if len(step_ids) != len(set(step_ids)):
-            raise ExecutionPlanInvalid("Plan step identifiers must be unique.")
-        try:
-            dependencies_input = tuple(self.declared_dependencies)
-        except TypeError as exc:
-            raise ExecutionPlanInvalid(
-                "Declared dependencies must be an iterable."
-            ) from exc
-        if any(
-            not isinstance(dependency, PlanDependency)
-            for dependency in dependencies_input
-        ):
-            raise ExecutionPlanInvalid(
-                "Declared dependencies must contain PlanDependency values."
-            )
-        dependencies = tuple(sorted(dependencies_input))
-        if len(dependencies) != len(set(dependencies)):
-            raise ExecutionPlanInvalid(
-                "Declared dependencies must not contain duplicates."
-            )
-        known_step_ids = set(step_ids)
-        for dependency in dependencies:
-            if (
-                dependency.predecessor_step_id not in known_step_ids
-                or dependency.successor_step_id not in known_step_ids
-            ):
-                raise ExecutionPlanInvalid(
-                    "Declared dependencies must reference retained plan steps."
-                )
-            predecessor_index = step_ids.index(
-                dependency.predecessor_step_id
-            )
-            successor_index = step_ids.index(dependency.successor_step_id)
-            if predecessor_index >= successor_index:
-                raise ExecutionPlanInvalid(
-                    "Dependencies must point from an earlier step to a later step."
-                )
-        object.__setattr__(self, "structured_planned_work", steps)
-        object.__setattr__(
-            self,
-            "capability_requirements",
-            _unique_sorted(
-                self.capability_requirements, "capability_requirements"
-            ),
-        )
-        object.__setattr__(
-            self,
-            "resource_requirements",
-            immutable_mapping(self.resource_requirements),
-        )
-        object.__setattr__(
-            self, "declared_dependencies", dependencies
-        )
-        object.__setattr__(
-            self,
-            "normalized_plan_constraints",
-            immutable_mapping(self.normalized_plan_constraints),
-        )
-        object.__setattr__(
-            self,
-            "planning_configuration_digest",
-            _sha256_hex(
-                self.planning_configuration_digest,
-                "planning_configuration_digest",
-            ),
-        )
-        object.__setattr__(
-            self,
-            "policy_version_or_digest",
-            _required_text(
-                self.policy_version_or_digest,
-                "policy_version_or_digest",
-            ),
-        )
-        object.__setattr__(
-            self,
-            "derivation_evidence",
-            _unique_sorted(self.derivation_evidence, "derivation_evidence"),
-        )
-        if not self.derivation_evidence:
-            raise ExecutionPlanInvalid("Derivation evidence is required.")
-        if not isinstance(
-            self.reconstruction_metadata, PlanReconstructionMetadata
-        ):
-            raise ExecutionPlanInvalid(
-                "Plan reconstruction metadata is required."
-            )
-        if (
-            self.request.canonical_digest
-            not in self.reconstruction_metadata.input_artifact_hashes
-        ):
-            raise ExecutionPlanInvalid(
-                "Reconstruction metadata must retain the request digest."
             )
 
 

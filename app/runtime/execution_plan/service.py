@@ -6,7 +6,6 @@ from typing import Mapping
 from app.runtime.execution_plan.domain import (
     ExecutionPlan,
     ExecutionPlanDigestMismatch,
-    ExecutionPlanDraft,
     ExecutionPlanIdempotencyConflict,
     ExecutionPlanIdentityMismatch,
     ExecutionPlanNotFound,
@@ -15,6 +14,7 @@ from app.runtime.execution_plan.domain import (
     ExecutionPlanReplayDiverged,
     ExecutionPlanReconstructionFailed,
     ExecutionPlanVersionConflict,
+    ExecutionPlanningInput,
     PlanDerivationOutcome,
     PlanDerivationResult,
 )
@@ -27,6 +27,11 @@ from app.runtime.execution_plan.serialization import (
     build_execution_plan,
     plan_idempotency_identity,
     reconstruct_execution_plan,
+)
+from app.runtime.execution_plan.validation import (
+    RequestValidationEvidenceSource,
+    ValidationOutcome,
+    validate_request_validation_evidence,
 )
 from app.runtime.execution_request.serialization import (
     reconstruct_execution_request,
@@ -231,20 +236,22 @@ class ExecutionPlanService:
         self,
         *,
         accepted_requests: AcceptedExecutionRequestSource,
+        validation_evidence: RequestValidationEvidenceSource,
         repository: ExecutionPlanRepository | None = None,
     ) -> None:
         self.accepted_requests = accepted_requests
+        self.validation_evidence = validation_evidence
         self.repository = repository or InMemoryExecutionPlanRepository()
 
     def derive(
         self,
-        draft: ExecutionPlanDraft,
+        planning_input: ExecutionPlanningInput,
         *,
         expected_version: int,
         idempotency_key: str,
     ) -> PlanDerivationResult:
         retained_request = self.accepted_requests.record(
-            draft.request.request_id
+            planning_input.request_id
         )
         if retained_request is None:
             raise ExecutionPlanRequestInvalid(
@@ -261,22 +268,52 @@ class ExecutionPlanService:
             ) from exc
         if (
             reconstructed_request != retained_request.request
-            or retained_request.request != draft.request
+            or retained_request.request.organization_id
+            != planning_input.organization_id
+            or retained_request.request.workload_context_id
+            != planning_input.workload_context_id
         ):
             raise ExecutionPlanRequestInvalid(
                 "Execution Request differs from retained accepted evidence."
             )
+        validation = self.validation_evidence.get(
+            planning_input.validation_evidence_id
+        )
+        if validation is None:
+            raise ExecutionPlanRequestInvalid(
+                "Retained Request Validation evidence is required."
+            )
+        validate_request_validation_evidence(validation)
+        if (
+            validation.validation_evidence_id
+            != planning_input.validation_evidence_id
+            or validation.outcome is not ValidationOutcome.VALID
+            or validation.request_id != retained_request.request.request_id
+            or validation.canonical_request_digest
+            != retained_request.request.canonical_digest
+            or validation.organization_id
+            != retained_request.request.organization_id
+            or validation.workload_context_id
+            != retained_request.request.workload_context_id
+        ):
+            raise ExecutionPlanRequestInvalid(
+                "Request Validation evidence is invalid or inapplicable."
+            )
         accepted_identity = plan_idempotency_identity(
-            organization_id=draft.request.organization_id,
-            workload_context_id=draft.request.workload_context_id,
-            request_id=draft.request.request_id,
+            organization_id=planning_input.organization_id,
+            workload_context_id=planning_input.workload_context_id,
+            request_id=planning_input.request_id,
             submitted_key=idempotency_key,
         )
-        plan, canonical_input, canonical_plan = build_execution_plan(draft)
+        plan, canonical_input, canonical_plan = build_execution_plan(
+            planning_input,
+            request=retained_request.request,
+            validation=validation,
+        )
         accepted, created = self.repository.append(
             ExecutionPlanRecord(
                 plan=plan,
-                request=draft.request,
+                request=retained_request.request,
                 canonical_input_content=canonical_input,
                 canonical_plan_content=canonical_plan,
                 idempotency_identity=accepted_identity,
