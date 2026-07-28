@@ -15,3 +15,4 @@ rewrite accepted decisions.
 - [0007: Runtime Architecture Baseline v1](0007-runtime-architecture-baseline-v1.md)
 - [0008: Worker Selection Foundation](0008-worker-selection-foundation.md)
 - [0009: Execution Request and Deterministic Planning Foundation](0009-execution-request-and-deterministic-planning-foundation.md)
+- [0010: Runtime State Machine and Transition Ownership](0010-runtime-state-machine-and-transition-ownership.md)
