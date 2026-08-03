@@ -2,9 +2,9 @@
 
 Document Status: Current
 
-Applies To: `main @ b683221` plus the unmerged v0.9B implementation candidate
+Applies To: `main @ ed204a86516de5154e9218b7df63cc94756104cb`
 
-Last Updated: 2026-07-28
+Last Updated: 2026-08-03
 
 Maintainers: EDGEIQ Maintainers
 
@@ -12,7 +12,7 @@ Maintainers: EDGEIQ Maintainers
 
 # Current Release
 
-**v0.9B — Immutable Execution Plan Foundation (Implementation Under Review)**
+**v0.9B — Immutable Execution Plan Foundation**
 
 ---
 
@@ -35,10 +35,24 @@ has passed. The v0.9A Implementation Review Gate and CI passed before merge.
 ADR 0010 is also present on `main` with status Proposed and its Architecture Review
 Gate passed.
 
-A separately authorized v0.9B implementation candidate adds only the immutable
-Execution Plan foundation. It remains unmerged and subject to Implementation Review
-Gate and CI. Worker Selection changes and all downstream runtime layers remain
-outside v0.9B and unauthorized.
+The v0.9B Immutable Execution Plan Foundation was squash-merged into `main` through
+PR #23.
+
+Merge Commit:
+
+`ed204a86516de5154e9218b7df63cc94756104cb`
+
+The v0.9B Implementation Review Gate and CI passed before merge. The implementation
+contains only the authorized immutable Execution Plan foundation. Deterministic
+derivation is owned by a registered, versioned planning rule, and retained accepted
+Execution Request and Request Validation evidence are verified. Canonical planning
+inputs, plan identity, digests, reconstruction, append-only history, scoped
+idempotency, expected-version compare-and-swap, and atomic snapshot publication are
+implemented.
+
+ADR 0009 and ADR 0010 remain Proposed. Worker Selection changes and all downstream
+runtime layers remain outside v0.9B and unauthorized; no downstream runtime authority
+was introduced by the merge.
 
 ---
 
@@ -54,6 +68,9 @@ outside v0.9B and unauthorized.
 - ✅ v0.9A Execution Request Foundation authorization
 - ✅ v0.9A Implementation Review Gate
 - ✅ v0.9A squash merge through PR #20
+- ✅ v0.9B Immutable Execution Plan Foundation authorization
+- ✅ v0.9B Implementation Review Gate
+- ✅ v0.9B squash merge through PR #23
 
 These milestones are complete and considered part of the repository baseline.
 
@@ -70,7 +87,7 @@ These milestones are complete and considered part of the repository baseline.
 | Runtime Architecture | Baseline Established |
 | Architecture Review Gate | PASS |
 | v0.9A Implementation Review Gate | PASS |
-| v0.9B Implementation Review Gate | Pending |
+| v0.9B Implementation Review Gate | PASS |
 
 ---
 
@@ -85,7 +102,7 @@ These milestones are complete and considered part of the repository baseline.
 - Organization-isolated retrieval
 - Fail-closed reconstruction and retained-content verification
 
-## Candidate Execution Plan Foundation (Not Merged)
+## Execution Plan Foundation
 
 - Immutable, organization-scoped Execution Plan contracts
 - Deterministic construction by a registered versioned rule from retained accepted
@@ -98,8 +115,8 @@ These milestones are complete and considered part of the repository baseline.
 - Atomic immutable snapshot publication
 - Fail-closed reconstruction and replay-divergence detection
 
-This candidate remains subject to implementation review and does not represent a
-completed or merged capability.
+This foundation passed its Implementation Review Gate and CI and was squash-merged
+through PR #23.
 
 ## Worker Selection
 
@@ -142,7 +159,9 @@ completed or merged capability.
 |------------|--------|
 | Worker Selection tests | 31 passed |
 | Execution Request tests | 34 passed |
-| Full test suite | 226 passed |
+| Execution Plan tests | 35 passed |
+| Runtime tests | 100 passed |
+| Full test suite | 261 passed |
 | Python compilation | PASS |
 | CI | PASS |
 | `git diff --check` | PASS |
@@ -198,12 +217,11 @@ Deferred capabilities require future planning and, where applicable, architectur
 - Selection history adapter remains process-local.
 - The Execution Request adapter is process-local; durable persistence remains
   deferred.
-- The candidate Execution Plan adapter is process-local; durable persistence remains
-  deferred.
+- The Execution Plan adapter is process-local; durable persistence remains deferred.
 - No end-to-end task execution path exists.
 - Prototype readiness depends on satisfying every acceptance criterion defined in
-  `ROADMAP.md`; v0.9A alone is insufficient.
-- The v0.9B implementation candidate remains unmerged and under review.
+  `ROADMAP.md`; v0.9A and v0.9B together remain insufficient.
+- v0.9B is complete on `main`, but it does not provide an end-to-end runtime path.
 - Downstream runtime milestones remain unauthorized.
 
 ---
@@ -218,8 +236,10 @@ Deferred capabilities require future planning and, where applicable, architectur
 - The completed v0.9A implementation is limited to the immutable Execution Request
   foundation.
 - ADR 0010 is merged, remains Proposed, and its Architecture Review Gate passed.
-- A separate authorization permits only the v0.9B immutable Execution Plan
-  foundation implementation candidate.
+- The separately authorized v0.9B immutable Execution Plan foundation passed its
+  Implementation Review Gate and CI and was squash-merged through PR #23.
+- The completed v0.9B implementation is limited to the immutable Execution Plan
+  foundation.
 - Worker Selection changes and downstream runtime layers remain outside v0.9B.
 - Further implementation requires separate explicit authorization.
 
@@ -245,11 +265,11 @@ authorized by the v0.9A merge.
 
 ---
 
-# Candidate v0.9B Scope
+# Completed v0.9B Scope
 
 ## v0.9B — Immutable Execution Plan Foundation
 
-Authorized implementation-review scope:
+Merged scope:
 
 1. Immutable Execution Plan contracts derived by a registered versioned rule from
    one retained accepted Execution Request, its retained valid Request Validation
@@ -260,12 +280,13 @@ Authorized implementation-review scope:
    history.
 5. Atomic process-local publication and fail-closed reconstruction.
 
-**This candidate is not complete or merged.**
+**Only this immutable Execution Plan foundation slice was authorized and merged.**
 
-It introduces no Worker Readiness, Worker Selection changes, Authorization
-Checkpoint, lease, queue, dispatch, claim, attempt, execution, monitoring,
-completion, retry, scheduling, orchestration, provider calls, model calls, or
-external side effects. ADR 0009 and ADR 0010 remain Proposed.
+The merge introduces no Worker Readiness, Worker Selection changes, Authorization
+Checkpoint, Dispatch Decision, Work Claim, Execution Lease, Queue Envelope,
+Execution Attempt, Execution Monitoring, Completion, Retry Policy, providers,
+models, scheduling, orchestration, APIs, external effects, or authority for later
+runtime milestones. ADR 0009 and ADR 0010 remain Proposed.
 
 ---
 
