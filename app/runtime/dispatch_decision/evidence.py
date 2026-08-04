@@ -281,7 +281,13 @@ T = TypeVar("T")
 
 
 class EvidenceSource(Protocol, Generic[T]):
-    def get(self, artifact_id: str) -> T | None: ...
+    def get_scoped(
+        self,
+        artifact_id: str,
+        *,
+        organization_id: str,
+        workload_context_id: str,
+    ) -> T | None: ...
 
 
 class InMemoryEvidenceSource(Generic[T]):
@@ -300,16 +306,38 @@ class InMemoryEvidenceSource(Generic[T]):
                 raise DispatchDecisionInvalid("Immutable retained evidence cannot be replaced.")
             self._items[key] = value
 
-    def get(self, artifact_id: str) -> T | None:
+    def get_scoped(
+        self,
+        artifact_id: str,
+        *,
+        organization_id: str,
+        workload_context_id: str,
+    ) -> T | None:
         with self._lock:
             value = self._items.get(artifact_id)
-        if value is not None:
-            self._validator(value)
+        if value is None:
+            return None
+        if (
+            getattr(value, "organization_id", None) != organization_id
+            or getattr(value, "workload_context_id", None) != workload_context_id
+        ):
+            return None
+        self._validator(value)
         return value
 
 
-def require_evidence(source: EvidenceSource[T], artifact_id: str, label: str) -> T:
-    value = source.get(artifact_id)
+def require_evidence(
+    source: EvidenceSource[T],
+    artifact_id: str,
+    *,
+    organization_id: str,
+    workload_context_id: str,
+) -> T:
+    value = source.get_scoped(
+        artifact_id,
+        organization_id=organization_id,
+        workload_context_id=workload_context_id,
+    )
     if value is None:
-        raise DispatchEvidenceMissing(f"Retained {label} evidence is unavailable.")
+        raise DispatchEvidenceMissing("Required Dispatch evidence was not found.")
     return value

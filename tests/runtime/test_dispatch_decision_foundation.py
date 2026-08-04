@@ -43,6 +43,7 @@ from app.runtime.dispatch_decision.service import (
 )
 
 NOW = datetime(2026, 8, 4, 12, tzinfo=timezone.utc)
+SAFE_EVIDENCE_MESSAGE = "Required Dispatch evidence was not found."
 
 
 class Context:
@@ -182,7 +183,7 @@ def test_missing_authoritative_evidence_fails_not_denies(missing: str) -> None:
     context = Context()
     source = getattr(context, f"{missing}s" if missing != "readiness" else "readiness")
     source._items.clear()
-    with pytest.raises(DispatchEvidenceMissing):
+    with pytest.raises(DispatchEvidenceMissing, match=f"^{SAFE_EVIDENCE_MESSAGE}$"):
         evaluate(context)
     assert context.service.history(context.request()) == ()
 
@@ -234,14 +235,8 @@ def test_candidate_membership_and_transitive_readiness_are_selection_owned() -> 
     )
 
 
-def test_scope_and_unsupported_evidence_versions_fail_closed() -> None:
+def test_unsupported_evidence_versions_fail_closed() -> None:
     context = Context()
-    cross = build_plan_evidence(
-        plan_id="plan:cross", organization_id="org-2", workload_context_id="workload-1", work_item_ids=("work-item-1",)
-    )
-    context.plans.retain(cross)
-    with pytest.raises(Exception, match="organization"):
-        evaluate(context, context.request(plan_id=cross.plan_id, plan_digest=cross.canonical_digest))
     context.selections._items[context.selection.selection_id] = replace(
         context.selection, selection_policy_version="unsupported"
     )
@@ -391,15 +386,122 @@ def test_reconstruction_detects_retained_input_and_output_divergence_without_mut
     assert context.service.history(context.request()) == original_history
 
 
-def test_organization_and_workload_isolation_hide_evidence() -> None:
+def test_decision_reads_hide_foreign_organization() -> None:
     context = Context()
     created = evaluate(context)
     with pytest.raises(DispatchDecisionNotFound):
         context.service.get(created.decision.dispatch_decision_id, organization_id="org-2")
     with pytest.raises(DispatchDecisionNotFound):
         context.service.reconstruct(created.decision.dispatch_decision_id, organization_id="org-2")
-    with pytest.raises(DispatchDecisionInvalid, match="workload"):
-        evaluate(context, context.request(workload_context_id="workload-2"))
+
+
+def _make_evidence_inaccessible(context: Context, artifact: str, visibility: str) -> None:
+    source = getattr(context, f"{artifact}s" if artifact != "readiness" else "readiness")
+    value = getattr(context, "ready" if artifact == "readiness" else artifact)
+    identity_name = f"{artifact}_id" if artifact != "readiness" else "readiness_id"
+    identity = getattr(value, identity_name)
+    if visibility == "absent":
+        source._items.pop(identity, None)
+        return
+    organization_id = "org-2" if visibility == "foreign_organization" else "org-1"
+    workload_context_id = "workload-2" if visibility == "foreign_workload" else "workload-1"
+    if artifact == "plan":
+        inaccessible = build_plan_evidence(
+            plan_id=value.plan_id,
+            organization_id=organization_id,
+            workload_context_id=workload_context_id,
+            work_item_ids=value.work_item_ids,
+        )
+    elif artifact == "selection":
+        inaccessible = build_selection_evidence(
+            selection_id=value.selection_id,
+            organization_id=organization_id,
+            workload_context_id=workload_context_id,
+            plan_reference=value.plan_reference,
+            candidates=value.candidates,
+            evaluation_boundary=value.evaluation_boundary,
+        )
+    elif artifact == "readiness":
+        inaccessible = build_readiness_evidence(
+            readiness_id=value.readiness_id,
+            organization_id=organization_id,
+            workload_context_id=workload_context_id,
+            evaluated_at=value.evaluated_at,
+            expires_at=value.expires_at,
+            superseded=value.superseded,
+        )
+    else:
+        inaccessible = build_lease_evidence(
+            lease_id=value.lease_id,
+            organization_id=organization_id,
+            workload_context_id=workload_context_id,
+            plan_id=value.plan_id,
+            work_item_ids=value.work_item_ids,
+            bounded_permission=value.bounded_permission,
+            effective_at=value.effective_at,
+            expires_at=value.expires_at,
+            revoked=value.revoked,
+            causal_authorization_reference=value.causal_authorization_reference,
+        )
+    source._items[identity] = inaccessible
+
+
+@pytest.mark.parametrize("artifact", ["plan", "selection", "readiness", "lease"])
+@pytest.mark.parametrize("visibility", ["absent", "foreign_organization", "foreign_workload"])
+def test_inaccessible_evidence_has_one_safe_failure_without_publication(
+    artifact: str, visibility: str
+) -> None:
+    context = Context()
+    request = context.request()
+    state_before = context.service.repository._state
+    _make_evidence_inaccessible(context, artifact, visibility)
+
+    with pytest.raises(DispatchEvidenceMissing) as caught:
+        evaluate(context, request)
+
+    assert caught.value.code == "DispatchEvidenceMissing"
+    assert str(caught.value) == SAFE_EVIDENCE_MESSAGE
+    assert context.service.repository._state is state_before
+    assert context.service.history(request) == ()
+    assert context.service.current(request) is None
+    assert context.service.repository._state.by_id == {}
+    assert context.service.repository._state.idempotency == {}
+
+
+@pytest.mark.parametrize("artifact", ["plan", "selection", "readiness", "lease"])
+def test_absent_and_foreign_evidence_have_identical_public_failure(artifact: str) -> None:
+    signatures = []
+    for visibility in ("absent", "foreign_organization", "foreign_workload"):
+        context = Context()
+        _make_evidence_inaccessible(context, artifact, visibility)
+        with pytest.raises(DispatchEvidenceMissing) as caught:
+            evaluate(context)
+        signatures.append((type(caught.value), caught.value.code, str(caught.value)))
+    assert signatures == [
+        (DispatchEvidenceMissing, "DispatchEvidenceMissing", SAFE_EVIDENCE_MESSAGE)
+    ] * 3
+
+
+@pytest.mark.parametrize("artifact", ["plan", "selection", "readiness", "lease"])
+def test_foreign_evidence_failure_preserves_prior_accepted_snapshot(artifact: str) -> None:
+    context = Context()
+    first = evaluate(context)
+    state_before = context.service.repository._state
+    _make_evidence_inaccessible(context, artifact, "foreign_organization")
+
+    with pytest.raises(DispatchEvidenceMissing, match=f"^{SAFE_EVIDENCE_MESSAGE}$"):
+        evaluate(
+            context,
+            context.request(effective_at=NOW + timedelta(seconds=1)),
+            version=1,
+            key="offer-2",
+        )
+
+    assert context.service.repository._state is state_before
+    assert context.service.history(context.request()) == (first.decision,)
+    assert context.service.current(context.request()) == first.decision
+    assert context.service.repository.record(first.decision.dispatch_decision_id) is not None
+    assert len(context.service.repository._state.idempotency) == 1
 
 
 def test_no_downstream_behavior_or_external_dependencies() -> None:

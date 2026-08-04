@@ -9,7 +9,6 @@ from app.runtime.dispatch_decision.domain import (
     DispatchDecisionIdempotencyConflict,
     DispatchDecisionInvalid,
     DispatchDecisionNotFound,
-    DispatchDecisionOrganizationMismatch,
     DispatchDecisionReplayDiverged,
     DispatchDecisionReconstructionFailed,
     DispatchDecisionVersionConflict,
@@ -138,9 +137,13 @@ class DispatchDecisionService:
     def _resolve(
         self, request: DispatchRequest
     ) -> tuple[VerifiedDispatchEvidence, RegisteredDispatchPolicy]:
-        plan = require_evidence(self.plans, request.plan_id, "Execution Plan")
-        selection = require_evidence(self.selections, request.selection_id, "Worker Selection")
-        lease = require_evidence(self.leases, request.lease_id, "Execution Lease")
+        scope = {
+            "organization_id": request.organization_id,
+            "workload_context_id": request.workload_context_id,
+        }
+        plan = require_evidence(self.plans, request.plan_id, **scope)
+        selection = require_evidence(self.selections, request.selection_id, **scope)
+        lease = require_evidence(self.leases, request.lease_id, **scope)
         for label, retained, expected in (
             ("plan", plan.canonical_digest, request.plan_digest),
             ("selection", selection.canonical_digest, request.selection_digest),
@@ -148,11 +151,6 @@ class DispatchDecisionService:
         ):
             if retained != expected:
                 raise DispatchDecisionDigestMismatch(f"Retained {label} digest does not match the request reference.")
-        for label, evidence in (("plan", plan), ("selection", selection), ("lease", lease)):
-            if evidence.organization_id != request.organization_id:
-                raise DispatchDecisionOrganizationMismatch(f"Retained {label} organization does not match.")
-            if evidence.workload_context_id != request.workload_context_id:
-                raise DispatchDecisionInvalid(f"Retained {label} workload context does not match.")
         if request.work_item_id not in plan.work_item_ids:
             raise DispatchDecisionInvalid("The work item is not retained by the Execution Plan.")
         if selection.plan_reference.artifact_id != plan.plan_id or selection.plan_reference.canonical_digest != plan.canonical_digest:
@@ -165,13 +163,9 @@ class DispatchDecisionService:
             raise DispatchDecisionInvalid("Selection and Dispatch evidence boundaries do not match.")
         readiness_values: list[RetainedReadinessEvidence] = []
         for reference in candidate.readiness_references:
-            retained = require_evidence(self.readiness, reference.artifact_id, "Worker Readiness")
+            retained = require_evidence(self.readiness, reference.artifact_id, **scope)
             if retained.canonical_digest != reference.canonical_digest:
                 raise DispatchDecisionDigestMismatch("Retained readiness digest does not match Selection evidence.")
-            if retained.organization_id != request.organization_id:
-                raise DispatchDecisionOrganizationMismatch("Retained readiness organization does not match.")
-            if retained.workload_context_id != request.workload_context_id:
-                raise DispatchDecisionInvalid("Retained readiness workload context does not match.")
             readiness_values.append(retained)
         if lease.plan_id != plan.plan_id:
             raise DispatchDecisionInvalid("Execution Lease does not apply to the retained Execution Plan.")
