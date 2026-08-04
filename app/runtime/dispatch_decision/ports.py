@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from typing import Protocol
 
-from app.runtime.dispatch_decision.domain import DispatchDecision, DispatchEvaluationInput
+from app.runtime.dispatch_decision.domain import DispatchDecision, DispatchRequest
 
 
 @dataclass(frozen=True)
 class DispatchDecisionRecord:
-    evaluation_input: DispatchEvaluationInput
+    request: DispatchRequest
     decision: DispatchDecision
     idempotency_identity: str
     canonical_input_content: bytes

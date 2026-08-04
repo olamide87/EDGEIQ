@@ -61,6 +61,13 @@ bounded v0.10A immutable Dispatch Decision Foundation implementation candidate o
 feature branch. The candidate remains subject to an Implementation Review Gate, CI,
 and merge review.
 
+The first v0.10A Implementation Review Gate returned `FAIL` at reviewed head
+`a13a973187e6b8af13404a7a0962c8da370d06d3`. Remediation replaces caller-authored
+applicability results with authoritative retained Plan, Selection, transitive
+Readiness, Lease, and registered-policy evidence; adds rollback-safe repository
+publication and authoritative reconstruction; and remains pending a new full gate.
+PR #26 remains Draft and unmerged.
+
 ---
 
 # Completed Milestones
@@ -180,9 +187,9 @@ through PR #23.
 | Worker Selection tests | 31 passed |
 | Execution Request tests | 34 passed |
 | Execution Plan tests | 35 passed |
-| Dispatch Decision tests | 13 passed |
-| Runtime tests | 109 passed |
-| Full test suite | 270 passed |
+| Dispatch Decision tests | 31 passed |
+| Runtime tests | 127 passed |
+| Full test suite | 288 passed |
 | Python compilation | PASS |
 | CI | PASS |
 | `git diff --check` | PASS |
@@ -268,6 +275,8 @@ Deferred capabilities require future planning and, where applicable, architectur
 - v0.10A implementation authorization is limited to the immutable Dispatch Decision
   foundation candidate; its Implementation Review Gate and merge review remain
   pending.
+- The first v0.10A Implementation Review Gate failed; focused remediation is pending
+  re-evaluation on Draft PR #26.
 - Further implementation requires separate explicit authorization.
 
 ---

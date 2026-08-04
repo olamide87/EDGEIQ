@@ -16,6 +16,10 @@ class DispatchDecisionInvalid(DispatchDecisionError):
     code = "DispatchDecisionInvalid"
 
 
+class DispatchEvidenceMissing(DispatchDecisionInvalid):
+    code = "DispatchEvidenceMissing"
+
+
 class DispatchDecisionDigestMismatch(DispatchDecisionInvalid):
     code = "DispatchDecisionDigestMismatch"
 
@@ -38,6 +42,10 @@ class DispatchDecisionVersionConflict(DispatchDecisionError):
 
 class DispatchDecisionNotFound(DispatchDecisionError):
     code = "DispatchDecisionNotFound"
+
+
+class DispatchDecisionPersistenceFailure(DispatchDecisionError):
+    code = "DispatchDecisionPersistenceFailure"
 
 
 class DispatchDecisionReconstructionFailed(DispatchDecisionError):
@@ -77,104 +85,67 @@ def utc_time(value: datetime, field_name: str) -> datetime:
     return value.astimezone(timezone.utc)
 
 
-@dataclass(frozen=True, order=True)
-class ArtifactReference:
-    artifact_id: str
-    canonical_digest: str
+@dataclass(frozen=True)
+class DispatchRequest:
     organization_id: str
     workload_context_id: str
-    history_boundary: str
-
-    def __post_init__(self) -> None:
-        for name in ("artifact_id", "organization_id", "workload_context_id", "history_boundary"):
-            object.__setattr__(self, name, required_text(getattr(self, name), name))
-        object.__setattr__(self, "canonical_digest", sha256_hex(self.canonical_digest, "canonical_digest"))
-
-
-@dataclass(frozen=True)
-class DispatchPolicy:
-    policy_id: str
-    policy_version: str
-    canonical_digest: str
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "policy_id", required_text(self.policy_id, "policy_id"))
-        object.__setattr__(self, "policy_version", required_text(self.policy_version, "policy_version"))
-        object.__setattr__(self, "canonical_digest", sha256_hex(self.canonical_digest, "policy_digest"))
-
-
-@dataclass(frozen=True)
-class DispatchEvaluationInput:
-    organization_id: str
-    workload_context_id: str
-    plan: ArtifactReference
+    plan_id: str
+    plan_digest: str
     work_item_id: str
-    selection: ArtifactReference
+    selection_id: str
+    selection_digest: str
     selected_candidate_id: str
-    readiness_references: tuple[ArtifactReference, ...]
-    lease: ArtifactReference
-    causal_authorization_reference: ArtifactReference
-    policy: DispatchPolicy
+    lease_id: str
+    lease_digest: str
+    dispatch_policy_id: str
+    dispatch_policy_version: str
+    dispatch_policy_digest: str
     evaluation_boundary: str
     effective_at: datetime
     clock_source_id: str
     clock_source_version: str
     configuration_version: str
-    selection_candidate_present: bool = True
-    selection_applicable: bool = True
-    readiness_applicable: bool = True
-    lease_applicable: bool = True
-    lease_expired: bool = False
-    lease_revoked: bool = False
     schema_version: str = SUPPORTED_DISPATCH_SCHEMA_VERSION
     component_version: str = SUPPORTED_DISPATCH_COMPONENT_VERSION
     serialization_version: str = SUPPORTED_SERIALIZATION_VERSION
 
     def __post_init__(self) -> None:
         for name in (
-            "organization_id", "workload_context_id", "work_item_id",
-            "selected_candidate_id", "evaluation_boundary", "clock_source_id",
+            "organization_id", "workload_context_id", "plan_id", "work_item_id",
+            "selection_id", "selected_candidate_id", "lease_id", "dispatch_policy_id",
+            "dispatch_policy_version", "evaluation_boundary", "clock_source_id",
             "clock_source_version", "configuration_version",
         ):
             object.__setattr__(self, name, required_text(getattr(self, name), name))
-        for name in ("plan", "selection", "lease", "causal_authorization_reference"):
-            if not isinstance(getattr(self, name), ArtifactReference):
-                raise DispatchDecisionInvalid(f"{name} must be retained artifact evidence.")
-        try:
-            readiness = tuple(sorted(self.readiness_references))
-        except TypeError as exc:
-            raise DispatchDecisionInvalid("readiness_references must be retained artifact evidence.") from exc
-        if not readiness or any(not isinstance(item, ArtifactReference) for item in readiness):
-            raise DispatchDecisionInvalid("At least one retained readiness reference is required.")
-        if len(readiness) != len(set(readiness)):
-            raise DispatchDecisionInvalid("Readiness references must be unique.")
-        object.__setattr__(self, "readiness_references", readiness)
+        for name in ("plan_digest", "selection_digest", "lease_digest", "dispatch_policy_digest"):
+            object.__setattr__(self, name, sha256_hex(getattr(self, name), name))
         object.__setattr__(self, "effective_at", utc_time(self.effective_at, "effective_at"))
-        for name in (
-            "selection_candidate_present", "selection_applicable", "readiness_applicable",
-            "lease_applicable", "lease_expired", "lease_revoked",
-        ):
-            if not isinstance(getattr(self, name), bool):
-                raise DispatchDecisionInvalid(f"{name} must be boolean retained evidence.")
         if self.schema_version != SUPPORTED_DISPATCH_SCHEMA_VERSION:
             raise DispatchDecisionVersionUnsupported(f"Unsupported schema version: {self.schema_version}.")
         if self.component_version != SUPPORTED_DISPATCH_COMPONENT_VERSION:
             raise DispatchDecisionVersionUnsupported(f"Unsupported component version: {self.component_version}.")
         if self.serialization_version != SUPPORTED_SERIALIZATION_VERSION:
             raise DispatchDecisionVersionUnsupported("Unsupported serialization version.")
-        for reference in (self.plan, self.selection, *readiness, self.lease, self.causal_authorization_reference):
-            if reference.organization_id != self.organization_id or reference.workload_context_id != self.workload_context_id:
-                raise DispatchDecisionOrganizationMismatch("All evidence must match organization and workload scope.")
 
     @property
     def stream_key(self) -> tuple[str, str, str, str, str]:
         return (
             self.organization_id,
             self.workload_context_id,
-            self.plan.artifact_id,
+            self.plan_id,
             self.work_item_id,
             self.selected_candidate_id,
         )
+
+
+@dataclass(frozen=True, order=True)
+class EvidenceReference:
+    artifact_id: str
+    canonical_digest: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "artifact_id", required_text(self.artifact_id, "artifact_id"))
+        object.__setattr__(self, "canonical_digest", sha256_hex(self.canonical_digest, "canonical_digest"))
 
 
 @dataclass(frozen=True)
@@ -193,14 +164,15 @@ class DispatchDecision:
     dispatch_decision_id: str
     organization_id: str
     workload_context_id: str
-    plan_reference: ArtifactReference
+    plan_reference: EvidenceReference
     work_item_id: str
-    selection_reference: ArtifactReference
+    selection_reference: EvidenceReference
     selected_candidate_id: str
-    readiness_references: tuple[ArtifactReference, ...]
-    lease_reference: ArtifactReference
-    causal_authorization_reference: ArtifactReference
-    dispatch_policy: DispatchPolicy
+    readiness_references: tuple[EvidenceReference, ...]
+    lease_reference: EvidenceReference
+    causal_authorization_reference: EvidenceReference
+    dispatch_policy_reference: EvidenceReference
+    dispatch_policy_version: str
     outcome: DispatchDecisionOutcome
     reason_codes: tuple[str, ...]
     canonical_input_digest: str
@@ -222,6 +194,7 @@ class DispatchDecision:
         if not reasons or len(reasons) != len(set(reasons)):
             raise DispatchDecisionInvalid("Reason codes must be non-empty and unique.")
         object.__setattr__(self, "reason_codes", reasons)
+        object.__setattr__(self, "readiness_references", tuple(sorted(self.readiness_references)))
         object.__setattr__(self, "recorded_at", utc_time(self.recorded_at, "recorded_at"))
         if self.schema_version != SUPPORTED_DISPATCH_SCHEMA_VERSION:
             raise DispatchDecisionVersionUnsupported(f"Unsupported schema version: {self.schema_version}.")

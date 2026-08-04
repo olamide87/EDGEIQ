@@ -19,7 +19,7 @@ complexity is earned through reproducibility and held-out evidence.
 | v0.8 | Worker Selection Foundation | Complete |
 | v0.9A | Execution Request Foundation | Complete |
 | v0.9B | Immutable Execution Plan Foundation | Complete |
-| v0.10A | Dispatch Decision Foundation | Authorized implementation candidate; under review |
+| v0.10A | Dispatch Decision Foundation | Draft remediation pending Implementation Review Gate re-evaluation |
 | v1.0 | Public Beta | Planned |
 
 ## v0.5 promotion sequence
@@ -212,6 +212,13 @@ migrations, providers, models, or durable distributed persistence.
 ADR 0011 remains Proposed. The candidate remains subject to an Implementation Review
 Gate, CI, and merge review. No downstream runtime capability or later milestone is
 authorized by this roadmap entry.
+
+The first Implementation Review Gate for Draft PR #26 returned `FAIL`. The bounded
+remediation replaces caller-authored applicability with retained authoritative
+evidence sources, registered policy evaluation, atomic snapshot publication, and
+authoritative reconstruction. The candidate remains unmerged and incomplete pending
+a new full gate. Work Claim, Queue Envelope, execution, and later milestones remain
+unauthorized.
 
 ## Roadmap governance
 
