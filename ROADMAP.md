@@ -18,7 +18,8 @@ complexity is earned through reproducibility and held-out evidence.
 | v0.7A | Runtime Architecture Baseline v1 | Complete |
 | v0.8 | Worker Selection Foundation | Complete |
 | v0.9A | Execution Request Foundation | Complete |
-| v0.9B | Immutable Execution Plan Foundation | Authorized implementation candidate; under review |
+| v0.9B | Immutable Execution Plan Foundation | Complete |
+| v0.10A | Dispatch Decision Foundation | Authorized implementation candidate; under review |
 | v1.0 | Public Beta | Planned |
 
 ## v0.5 promotion sequence
@@ -80,6 +81,10 @@ promotion is authorized; learned models remain governed research candidates.
 - ADR 0010 remains Proposed and constrains v0.9B to the effective runtime dependency,
   transition-ownership, immutable-evidence, reconstruction, concurrency, and
   fail-closed boundaries. It authorizes no implementation by itself.
+- ADR 0011 defines the Proposed Dispatch Decision Foundation. Its Architecture
+  Review Gate passed. A separate authorization permits only the bounded v0.10A
+  immutable Dispatch Decision implementation candidate; Work Claim and every
+  downstream effect remain deferred.
 - v1.0 and later items remain future planning. Release labels do not establish or
   substitute for the objective Prototype acceptance criteria below.
 
@@ -181,6 +186,32 @@ It does not implement or change Worker Readiness, Worker Selection, Authorizatio
 Checkpoint, leases, queues, dispatch, claims, attempts, execution, monitoring,
 completion, retries, scheduling, orchestration, providers, models, or external side
 effects. Those capabilities remain unauthorized.
+
+### v0.10A — Dispatch Decision Foundation
+
+The separately authorized implementation candidate is limited to:
+
+```text
+Immutable Execution Plan + retained Worker Selection evidence
+    + retained Execution Lease evidence + exact Dispatch policy
+    -> immutable Dispatch approval or denial evidence
+```
+
+The candidate defines immutable Dispatch Decision contracts; canonical serialization,
+digests, and deterministic identities; a candidate-specific aggregate stream;
+append-only process-local reference history; scoped idempotency; expected-version
+compare-and-swap; organization-isolated retrieval; and deterministic fail-closed
+reconstruction.
+
+Approval creates no claim, exclusivity, lease, queue message, execution, or external
+effect. The candidate does not implement or change Authorization Checkpoint,
+Execution Lease, Worker Readiness, Worker Selection, Work Claim, Queue Envelope,
+execution, monitoring, completion, retries, scheduling, orchestration, APIs,
+migrations, providers, models, or durable distributed persistence.
+
+ADR 0011 remains Proposed. The candidate remains subject to an Implementation Review
+Gate, CI, and merge review. No downstream runtime capability or later milestone is
+authorized by this roadmap entry.
 
 ## Roadmap governance
 

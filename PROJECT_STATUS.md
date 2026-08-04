@@ -2,7 +2,7 @@
 
 Document Status: Current
 
-Applies To: `main @ ed204a86516de5154e9218b7df63cc94756104cb`
+Applies To: `main @ 0672c8c20b663ba9fce1587406bd69e509f391cb`
 
 Last Updated: 2026-08-03
 
@@ -12,7 +12,7 @@ Maintainers: EDGEIQ Maintainers
 
 # Current Release
 
-**v0.9B — Immutable Execution Plan Foundation**
+**v0.10A — Dispatch Decision Foundation Implementation Candidate**
 
 ---
 
@@ -54,6 +54,13 @@ ADR 0009 and ADR 0010 remain Proposed. Worker Selection changes and all downstre
 runtime layers remain outside v0.9B and unauthorized; no downstream runtime authority
 was introduced by the merge.
 
+ADR 0011 — Dispatch Decision Foundation was squash-merged into `main` through PR #25
+at `0672c8c20b663ba9fce1587406bd69e509f391cb`. ADR 0011 remains Proposed and its
+Architecture Review Gate passed. A separate explicit authorization permits only the
+bounded v0.10A immutable Dispatch Decision Foundation implementation candidate on its
+feature branch. The candidate remains subject to an Implementation Review Gate, CI,
+and merge review.
+
 ---
 
 # Completed Milestones
@@ -84,6 +91,7 @@ These milestones are complete and considered part of the repository baseline.
 | ADR 0008 — Worker Selection | Accepted |
 | ADR 0009 — Execution Request and Deterministic Planning Foundation | Proposed |
 | ADR 0010 — Runtime State Machine and Transition Ownership | Proposed |
+| ADR 0011 — Dispatch Decision Foundation | Proposed |
 | Runtime Architecture | Baseline Established |
 | Architecture Review Gate | PASS |
 | v0.9A Implementation Review Gate | PASS |
@@ -127,6 +135,18 @@ through PR #23.
 - Canonical serialization
 - Stable hashes and identifiers
 
+## Dispatch Decision Foundation Candidate
+
+- Immutable organization-scoped approval or denial evidence for one offer
+- Retained Execution Plan, Worker Selection, transitive readiness, Execution Lease,
+  causal authorization, policy, configuration, and time-evidence references
+- Canonical serialization, SHA-256 digests, and deterministic decision identities
+- Candidate-specific append-only process-local history
+- Scoped idempotency and expected-version compare-and-swap
+- Organization-isolated retrieval and fail-closed validation
+- Deterministic reconstruction and replay-divergence detection
+- No claim, exclusivity, queue message, lease mutation, execution, or external effect
+
 ## Replay & Audit
 
 - Replay metadata
@@ -160,8 +180,9 @@ through PR #23.
 | Worker Selection tests | 31 passed |
 | Execution Request tests | 34 passed |
 | Execution Plan tests | 35 passed |
-| Runtime tests | 100 passed |
-| Full test suite | 261 passed |
+| Dispatch Decision tests | 13 passed |
+| Runtime tests | 109 passed |
+| Full test suite | 270 passed |
 | Python compilation | PASS |
 | CI | PASS |
 | `git diff --check` | PASS |
@@ -182,7 +203,7 @@ through PR #23.
 | Worker Selection | Complete |
 | Durable Persistence | Deferred |
 | Task Submission | Not Started |
-| Dispatch | Deferred |
+| Dispatch | Authorized foundation candidate; under review |
 | Scheduling | Deferred |
 | Claims & Leases | Deferred |
 | Worker Execution | Not Started |
@@ -223,6 +244,8 @@ Deferred capabilities require future planning and, where applicable, architectur
   `ROADMAP.md`; v0.9A and v0.9B together remain insufficient.
 - v0.9B is complete on `main`, but it does not provide an end-to-end runtime path.
 - Downstream runtime milestones remain unauthorized.
+- The v0.10A candidate records Dispatch approval or denial only. It provides no Work
+  Claim, queue transport, execution path, external effect, or end-to-end prototype.
 
 ---
 
@@ -241,6 +264,10 @@ Deferred capabilities require future planning and, where applicable, architectur
 - The completed v0.9B implementation is limited to the immutable Execution Plan
   foundation.
 - Worker Selection changes and downstream runtime layers remain outside v0.9B.
+- ADR 0011 is merged, remains Proposed, and its Architecture Review Gate passed.
+- v0.10A implementation authorization is limited to the immutable Dispatch Decision
+  foundation candidate; its Implementation Review Gate and merge review remain
+  pending.
 - Further implementation requires separate explicit authorization.
 
 ---
