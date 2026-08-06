@@ -17,3 +17,4 @@ rewrite accepted decisions.
 - [0009: Execution Request and Deterministic Planning Foundation](0009-execution-request-and-deterministic-planning-foundation.md)
 - [0010: Runtime State Machine and Transition Ownership](0010-runtime-state-machine-and-transition-ownership.md)
 - [0011: Dispatch Decision Foundation](0011-dispatch-decision-foundation.md)
+- [0012: Work Claim Foundation](0012-work-claim-foundation.md)
