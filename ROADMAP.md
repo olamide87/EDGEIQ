@@ -19,7 +19,8 @@ complexity is earned through reproducibility and held-out evidence.
 | v0.8 | Worker Selection Foundation | Complete |
 | v0.9A | Execution Request Foundation | Complete |
 | v0.9B | Immutable Execution Plan Foundation | Complete |
-| v0.10A | Dispatch Decision Foundation | Draft remediation pending Implementation Review Gate re-evaluation |
+| v0.10A | Dispatch Decision Foundation | Complete |
+| v0.10B | Work Claim Foundation | Authorized implementation candidate |
 | v1.0 | Public Beta | Planned |
 
 ## v0.5 promotion sequence
@@ -82,9 +83,12 @@ promotion is authorized; learned models remain governed research candidates.
   transition-ownership, immutable-evidence, reconstruction, concurrency, and
   fail-closed boundaries. It authorizes no implementation by itself.
 - ADR 0011 defines the Proposed Dispatch Decision Foundation. Its Architecture
-  Review Gate passed. A separate authorization permits only the bounded v0.10A
-  immutable Dispatch Decision implementation candidate; Work Claim and every
-  downstream effect remain deferred.
+  Review Gate passed. The separately authorized bounded v0.10A immutable Dispatch
+  Decision foundation passed its Implementation Review Gate and was merged.
+- ADR 0012 defines the Proposed Work Claim Foundation. Its Architecture Review Gate
+  passed. This roadmap separately authorizes only the bounded v0.10B immutable Work
+  Claim foundation candidate; Execution Attempt and every later effect remain
+  deferred.
 - v1.0 and later items remain future planning. Release labels do not establish or
   substitute for the objective Prototype acceptance criteria below.
 
@@ -213,12 +217,50 @@ ADR 0011 remains Proposed. The candidate remains subject to an Implementation Re
 Gate, CI, and merge review. No downstream runtime capability or later milestone is
 authorized by this roadmap entry.
 
-The first Implementation Review Gate for Draft PR #26 returned `FAIL`. The bounded
-remediation replaces caller-authored applicability with retained authoritative
-evidence sources, registered policy evaluation, atomic snapshot publication, and
-authoritative reconstruction. The candidate remains unmerged and incomplete pending
-a new full gate. Work Claim, Queue Envelope, execution, and later milestones remain
-unauthorized.
+The v0.10A candidate passed its final Implementation Review Gate and CI and was
+squash-merged through PR #26. Work Claim, Queue Envelope, execution, and later
+milestones were not authorized by that merge.
+
+### v0.10B — Work Claim Foundation
+
+ADR 0012 is the governing basis for this separately authorized implementation
+candidate. ADR 0012 remains Proposed; its publication and merge did not themselves
+authorize implementation. This roadmap entry grants the separate, explicit, bounded
+authorization required by the governance process.
+
+The authorized slice is limited to:
+
+```text
+Applicable approved Dispatch Decision + authenticated claimant evidence
+    + exact claim policy + expected lineage version
+    -> immutable Work Claim evidence
+```
+
+Implementation may include only:
+
+- immutable Work Claim artifacts;
+- canonical serialization, deterministic identities, and canonical digests;
+- one authoritative Work Claim lineage stream keyed by organization, workload, plan,
+  and work item;
+- owner-assigned immutable claim generation;
+- acceptance-only monotonic fencing across the complete lineage;
+- append-only immutable claim history;
+- scoped idempotency and expected-version compare-and-swap;
+- atomic owner-scoped publication;
+- deterministic reconstruction and fail-closed verification;
+- organization and workload isolation;
+- bounded implementation documentation; and
+- bounded unit tests for this foundation.
+
+This authorization explicitly excludes Execution Attempt, execution, monitoring,
+completion, retries, Dispatch changes, Worker Selection changes, Execution Lease
+changes, Queue Envelope, provider or model invocation, orchestration, scheduling,
+APIs, migrations, external effects, and durable distributed persistence.
+
+The candidate remains subject to an Implementation Review Gate, CI, and merge review.
+It does not make ADR 0012 Accepted, authorize a later milestone, establish an
+end-to-end prototype, or grant execution authority. Any material deviation returns to
+architecture governance before implementation continues.
 
 ## Roadmap governance
 

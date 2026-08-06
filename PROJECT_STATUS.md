@@ -2,9 +2,9 @@
 
 Document Status: Current
 
-Applies To: `main @ 0672c8c20b663ba9fce1587406bd69e509f391cb`
+Applies To: `main @ 706f43525b208b6f0a327834b4b71336f7f41214`
 
-Last Updated: 2026-08-03
+Last Updated: 2026-08-06
 
 Maintainers: EDGEIQ Maintainers
 
@@ -12,7 +12,7 @@ Maintainers: EDGEIQ Maintainers
 
 # Current Release
 
-**v0.10A — Dispatch Decision Foundation Implementation Candidate**
+**v0.10B — Work Claim Foundation Authorized Implementation Candidate**
 
 ---
 
@@ -56,17 +56,17 @@ was introduced by the merge.
 
 ADR 0011 — Dispatch Decision Foundation was squash-merged into `main` through PR #25
 at `0672c8c20b663ba9fce1587406bd69e509f391cb`. ADR 0011 remains Proposed and its
-Architecture Review Gate passed. A separate explicit authorization permits only the
-bounded v0.10A immutable Dispatch Decision Foundation implementation candidate on its
-feature branch. The candidate remains subject to an Implementation Review Gate, CI,
-and merge review.
+Architecture Review Gate passed. The separately authorized bounded v0.10A immutable
+Dispatch Decision Foundation passed its Implementation Review Gate and CI and was
+squash-merged through PR #26 at
+`b8881b6e0b736c5736fb34e2908bce16a81b08e1`.
 
-The first v0.10A Implementation Review Gate returned `FAIL` at reviewed head
-`a13a973187e6b8af13404a7a0962c8da370d06d3`. Remediation replaces caller-authored
-applicability results with authoritative retained Plan, Selection, transitive
-Readiness, Lease, and registered-policy evidence; adds rollback-safe repository
-publication and authoritative reconstruction; and remains pending a new full gate.
-PR #26 remains Draft and unmerged.
+ADR 0012 — Work Claim Foundation was squash-merged into `main` through PR #27 at
+`706f43525b208b6f0a327834b4b71336f7f41214`. ADR 0012 remains Proposed and its
+Architecture Review Gate passed after the work-item lineage and fencing remediation.
+This governance package separately authorizes only the bounded v0.10B immutable Work
+Claim Foundation implementation candidate defined below. It authorizes no Execution
+Attempt or later runtime behavior.
 
 ---
 
@@ -85,6 +85,10 @@ PR #26 remains Draft and unmerged.
 - ✅ v0.9B Immutable Execution Plan Foundation authorization
 - ✅ v0.9B Implementation Review Gate
 - ✅ v0.9B squash merge through PR #23
+- ✅ v0.10A Dispatch Decision Foundation authorization
+- ✅ v0.10A Implementation Review Gate
+- ✅ v0.10A squash merge through PR #26
+- ✅ ADR 0012 Architecture Review Gate
 
 These milestones are complete and considered part of the repository baseline.
 
@@ -99,10 +103,12 @@ These milestones are complete and considered part of the repository baseline.
 | ADR 0009 — Execution Request and Deterministic Planning Foundation | Proposed |
 | ADR 0010 — Runtime State Machine and Transition Ownership | Proposed |
 | ADR 0011 — Dispatch Decision Foundation | Proposed |
+| ADR 0012 — Work Claim Foundation | Proposed |
 | Runtime Architecture | Baseline Established |
 | Architecture Review Gate | PASS |
 | v0.9A Implementation Review Gate | PASS |
 | v0.9B Implementation Review Gate | PASS |
+| v0.10A Implementation Review Gate | PASS |
 
 ---
 
@@ -142,7 +148,7 @@ through PR #23.
 - Canonical serialization
 - Stable hashes and identifiers
 
-## Dispatch Decision Foundation Candidate
+## Dispatch Decision Foundation
 
 - Immutable organization-scoped approval or denial evidence for one offer
 - Retained Execution Plan, Worker Selection, transitive readiness, Execution Lease,
@@ -153,6 +159,23 @@ through PR #23.
 - Organization-isolated retrieval and fail-closed validation
 - Deterministic reconstruction and replay-divergence detection
 - No claim, exclusivity, queue message, lease mutation, execution, or external effect
+
+This foundation passed its Implementation Review Gate and CI and was squash-merged
+through PR #26.
+
+## Authorized Work Claim Foundation Candidate
+
+- Immutable, organization- and workload-scoped Work Claim artifacts
+- Canonical serialization, deterministic identities, and canonical digests
+- One authoritative lineage stream per organization, workload, plan, and work item
+- Owner-assigned immutable claim generation
+- Acceptance-only monotonic fencing across the complete lineage
+- Append-only immutable claim history
+- Scoped idempotency and expected-version compare-and-swap
+- Atomic owner-scoped publication
+- Deterministic reconstruction and fail-closed verification
+- Bounded implementation documentation and focused unit tests
+- No Execution Attempt, execution, queue effect, or external effect
 
 ## Replay & Audit
 
@@ -187,9 +210,9 @@ through PR #23.
 | Worker Selection tests | 31 passed |
 | Execution Request tests | 34 passed |
 | Execution Plan tests | 35 passed |
-| Dispatch Decision tests | 31 passed |
-| Runtime tests | 127 passed |
-| Full test suite | 288 passed |
+| Dispatch Decision tests | 51 passed |
+| Runtime tests | 147 passed |
+| Full test suite | 308 passed |
 | Python compilation | PASS |
 | CI | PASS |
 | `git diff --check` | PASS |
@@ -210,9 +233,9 @@ through PR #23.
 | Worker Selection | Complete |
 | Durable Persistence | Deferred |
 | Task Submission | Not Started |
-| Dispatch | Authorized foundation candidate; under review |
+| Dispatch | Foundation complete |
 | Scheduling | Deferred |
-| Claims & Leases | Deferred |
+| Claims & Leases | Work Claim foundation authorized; lease changes deferred |
 | Worker Execution | Not Started |
 | Retry Handling | Deferred |
 | Orchestration | Deferred |
@@ -228,7 +251,7 @@ The following capabilities are intentionally excluded from the Worker Selection 
 - Durable distributed persistence
 - Dispatch
 - Scheduling
-- Claims
+- Work Claim behavior beyond the authorized immutable foundation
 - Leases
 - Queues
 - Worker execution
@@ -250,9 +273,15 @@ Deferred capabilities require future planning and, where applicable, architectur
 - Prototype readiness depends on satisfying every acceptance criterion defined in
   `ROADMAP.md`; v0.9A and v0.9B together remain insufficient.
 - v0.9B is complete on `main`, but it does not provide an end-to-end runtime path.
-- Downstream runtime milestones remain unauthorized.
-- The v0.10A candidate records Dispatch approval or denial only. It provides no Work
-  Claim, queue transport, execution path, external effect, or end-to-end prototype.
+- Runtime milestones downstream of the authorized v0.10B foundation remain
+  unauthorized.
+- The completed v0.10A foundation records Dispatch approval or denial only. It
+  provides no Work Claim, queue transport, execution path, external effect, or
+  end-to-end prototype.
+- The v0.10B authorization is limited to the immutable Work Claim foundation. It
+  grants no Execution Attempt, execution, monitoring, completion, retry, scheduling,
+  orchestration, provider, API, migration, durable-persistence, or external-effect
+  authority.
 
 ---
 
@@ -272,11 +301,14 @@ Deferred capabilities require future planning and, where applicable, architectur
   foundation.
 - Worker Selection changes and downstream runtime layers remain outside v0.9B.
 - ADR 0011 is merged, remains Proposed, and its Architecture Review Gate passed.
-- v0.10A implementation authorization is limited to the immutable Dispatch Decision
-  foundation candidate; its Implementation Review Gate and merge review remain
-  pending.
-- The first v0.10A Implementation Review Gate failed; focused remediation is pending
-  re-evaluation on Draft PR #26.
+- The separately authorized v0.10A immutable Dispatch Decision foundation passed its
+  Implementation Review Gate and CI and was squash-merged through PR #26.
+- ADR 0012 is merged, remains Proposed, and its Architecture Review Gate passed.
+- v0.10B implementation authorization is limited to the immutable Work Claim
+  foundation candidate: canonical evidence, one authoritative lineage, owner-assigned
+  generation, acceptance-only monotonic fencing, append-only history, idempotency,
+  CAS, atomic publication, reconstruction, isolation, documentation, and unit tests.
+- Execution Attempt and every later runtime layer remain unauthorized.
 - Further implementation requires separate explicit authorization.
 
 ---
