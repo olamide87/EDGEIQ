@@ -12,7 +12,7 @@ Maintainers: EDGEIQ Maintainers
 
 # Current Release
 
-**v0.10B — Work Claim Foundation Authorized Implementation Candidate**
+**v0.10B — Work Claim Foundation Authorization Candidate (Draft / Ineffective)**
 
 ---
 
@@ -64,9 +64,13 @@ squash-merged through PR #26 at
 ADR 0012 — Work Claim Foundation was squash-merged into `main` through PR #27 at
 `706f43525b208b6f0a327834b4b71336f7f41214`. ADR 0012 remains Proposed and its
 Architecture Review Gate passed after the work-item lineage and fencing remediation.
-This governance package separately authorizes only the bounded v0.10B immutable Work
-Claim Foundation implementation candidate defined below. It authorizes no Execution
-Attempt or later runtime behavior.
+Draft PR #28 is an unmerged documentation-only authorization candidate for the
+bounded v0.10B immutable Work Claim Foundation defined below. Authorization is not
+currently effective: opening PR #28, CI passing, a Governance Review Gate `PASS`,
+marking the PR Ready, or adding a governance comment does not authorize
+implementation. Authorization becomes effective only when PR #28 is merged into
+`main`. Until that merge, Work Claim implementation remains prohibited and has not
+started; v0.10B is not implemented.
 
 ---
 
@@ -163,19 +167,112 @@ through PR #23.
 This foundation passed its Implementation Review Gate and CI and was squash-merged
 through PR #26.
 
-## Authorized Work Claim Foundation Candidate
+## Draft Work Claim Foundation Authorization Candidate
 
-- Immutable, organization- and workload-scoped Work Claim artifacts
-- Canonical serialization, deterministic identities, and canonical digests
-- One authoritative lineage stream per organization, workload, plan, and work item
-- Owner-assigned immutable claim generation
-- Acceptance-only monotonic fencing across the complete lineage
-- Append-only immutable claim history
-- Scoped idempotency and expected-version compare-and-swap
-- Atomic owner-scoped publication
-- Deterministic reconstruction and fail-closed verification
-- Bounded implementation documentation and focused unit tests
-- No Execution Attempt, execution, queue effect, or external effect
+ADR 0012 is the sole architectural basis for this candidate and remains Proposed.
+ADRs 0007–0011 remain controlling. ADR 0012's Architecture Review Gate passed, but
+architectural review and this Draft PR do not themselves authorize implementation.
+
+If and only if PR #28 is merged into `main`, the effective authorization is limited
+to:
+
+- immutable Work Claim lineage events and records;
+- canonical UTF-8 serialization, deterministic identities, and canonical digests;
+- one authoritative lineage keyed only by `organization_id`,
+  `workload_context_id`, `plan_id`, and `work_item_id`;
+- lineage stream version ordering every lifecycle event;
+- owner-assigned monotonic claim generation stored as immutable event content, with
+  one unique next generation under expected-version CAS and a later generation only
+  after valid expiry or release;
+- an acceptance-only monotonic fence across the entire lineage, strictly separate
+  from lineage version and generation;
+- append-only acceptance, retained rejection, expiry, and release evidence;
+- scoped idempotency, expected-version CAS, and rollback-safe owner-scoped atomic
+  publication;
+- deterministic reconstruction, fail-closed validation, and organization/workload
+  isolation; and
+- bounded implementation documentation and focused unit tests for this foundation.
+
+Generation, claimant identity, candidate identity, and Dispatch identity are
+canonical event inputs, not lineage identity. Competing claimants and
+candidate-specific Dispatch approvals share the same exclusivity lineage. Every
+lifecycle transition uses one lineage CAS boundary: only one successor may commit at
+one expected version, while stale writers append nothing and reload. There is no
+cross-stream atomicity, timestamp arbitration, last-write-wins, caller-selected or
+timestamp-derived generation, or timestamp-derived fence. Only acceptance advances
+the fence; rejection, expiry, release, and generation creation neither become nor
+reuse fences. Every later accepted claim has a fence greater than every earlier
+accepted claim.
+
+One approved Dispatch Decision is the direct upstream semantic input. Work Claim may
+resolve or reconstruct it only to verify identity, digest, scope, approval,
+applicability, and causal integrity. Plan, selection, readiness, Authorization
+Checkpoint, and Execution Lease semantics remain with their existing owners. Work
+Claim must not re-evaluate Dispatch policy, re-authorize, recompute readiness, rerank
+candidates, or grant, renew, revoke, extend, or reinterpret a lease. Newer Dispatch
+evidence alone cannot supersede an active claim or create another generation.
+
+Claimant support is limited to retained evidence sufficient to verify authenticated
+claimant identity, selected-candidate equivalence, organization/workload scope,
+evidence identity and digest, supported schema/version, and applicability to the
+approved offer. Work Claim verifies this evidence only. The candidate cannot create
+or change Worker Identity semantics, authentication infrastructure, trust, health,
+readiness, authorization, or a general identity system.
+
+With complete authoritative evidence, immutable domain outcomes may be accepted,
+rejected where ADR 0012 retains rejection, expired, or released. Malformed input;
+missing or inaccessible evidence; unsupported schema, policy, component, or
+serialization versions; digest or scope mismatch; claimant/candidate mismatch caused
+by invalid evidence; idempotency or expected-version conflict; illegal lineage
+transition; duplicate or skipped generation; non-monotonic or reused fence;
+persistence or reconstruction failure; replay divergence; and internal failure remain
+explicit fail-closed failures and are never normalized into acceptance or rejection.
+
+Reconstruction requires complete authoritative lineage history with contiguous
+versions; exact approved Dispatch, claimant, claim-policy identity/version/digest,
+semantic-time, expiry, release, schema, component, serialization, configuration,
+generation, and fence evidence. It reproduces generation boundaries, accepted
+claimant, outcomes, current derived claim, next permitted generation, every fence,
+canonical input, identity, content, and digest. It rejects lineage gaps; skipped or
+duplicate generations; multiple acceptances in one generation; generation before
+prior termination; duplicate/non-monotonic fences; altered or missing upstream
+evidence; policy divergence; and canonical-content divergence. Replay uses no current
+time, live worker state, queues, authoritative projection, provider, execution
+result, ambient mutable configuration, or external system.
+
+One owner-scoped logical commit may publish only one immutable lineage event, the
+lineage-history update, a repository-owned derived pointer/index, generation and
+fence assignments when applicable, and the idempotency index entry. Preparation
+precedes publication. Failure exposes no partial event, generation, fence, history
+entry, ID index, idempotency entry, or current pointer, and previously accepted
+state remains unchanged. Atomic creation or mutation of Dispatch Decision, Execution
+Lease, Queue Envelope, Execution Attempt, Completion Evidence, or an external effect
+is prohibited.
+
+Reads and writes are organization-scoped; lineage is workload-scoped; idempotency is
+organization-scoped; and Dispatch, claimant, and policy evidence use scope-aware
+lookup. Absent and inaccessible foreign evidence have the same safe failure class,
+code, message, and publication behavior and disclose no foreign artifact existence.
+Same-scope integrity failures remain explicit. Claimant evidence is not substitutable
+across organization or workload scope, and a scope-safe lookup failure publishes no
+accepted state.
+
+The candidate explicitly excludes Execution Attempt; execution; worker invocation;
+monitoring; completion; retries; Dispatch, Worker Selection, Worker Readiness,
+Execution Lease, Authorization Checkpoint, or Worker Identity semantic changes;
+authentication-system expansion; Queue Envelope; queue publication or consumption;
+provider or model invocation; orchestration; scheduling; public APIs; routes;
+controllers; migrations; external effects; durable distributed persistence;
+background workers; any end-to-end runtime path; and every later milestone.
+
+Bounded tests may prove only this foundation: lineage identity; unique generation;
+single acceptance per generation; monotonic fencing; expiry/release; idempotent and
+conflicting retries; stale versions; competing claimant, claim/release, and
+claim/expiry races; atomic failure/prior-state preservation;
+reconstruction/divergence; isolation;
+absent-versus-foreign non-disclosure; and downstream exclusions. Tests must not
+require attempts, queues, execution, monitoring, completion, retry, orchestration,
+or external integrations.
 
 ## Replay & Audit
 
@@ -235,7 +332,7 @@ through PR #26.
 | Task Submission | Not Started |
 | Dispatch | Foundation complete |
 | Scheduling | Deferred |
-| Claims & Leases | Work Claim foundation authorized; lease changes deferred |
+| Claims & Leases | Draft Work Claim authorization candidate; ineffective until PR #28 merges; lease changes deferred |
 | Worker Execution | Not Started |
 | Retry Handling | Deferred |
 | Orchestration | Deferred |
@@ -273,12 +370,13 @@ Deferred capabilities require future planning and, where applicable, architectur
 - Prototype readiness depends on satisfying every acceptance criterion defined in
   `ROADMAP.md`; v0.9A and v0.9B together remain insufficient.
 - v0.9B is complete on `main`, but it does not provide an end-to-end runtime path.
-- Runtime milestones downstream of the authorized v0.10B foundation remain
+- Runtime milestones downstream of the proposed v0.10B foundation remain
   unauthorized.
 - The completed v0.10A foundation records Dispatch approval or denial only. It
   provides no Work Claim, queue transport, execution path, external effect, or
   end-to-end prototype.
-- The v0.10B authorization is limited to the immutable Work Claim foundation. It
+- The Draft v0.10B authorization candidate is limited to the immutable Work Claim
+  foundation and is ineffective until PR #28 merges into `main`. It
   grants no Execution Attempt, execution, monitoring, completion, retry, scheduling,
   orchestration, provider, API, migration, durable-persistence, or external-effect
   authority.
@@ -304,12 +402,17 @@ Deferred capabilities require future planning and, where applicable, architectur
 - The separately authorized v0.10A immutable Dispatch Decision foundation passed its
   Implementation Review Gate and CI and was squash-merged through PR #26.
 - ADR 0012 is merged, remains Proposed, and its Architecture Review Gate passed.
-- v0.10B implementation authorization is limited to the immutable Work Claim
-  foundation candidate: canonical evidence, one authoritative lineage, owner-assigned
-  generation, acceptance-only monotonic fencing, append-only history, idempotency,
-  CAS, atomic publication, reconstruction, isolation, documentation, and unit tests.
+- PR #28 is Draft and unmerged. Its v0.10B implementation authorization candidate is
+  ineffective until merge into `main`; Work Claim implementation has not started and
+  v0.10B is not implemented.
+- If merged, authorization is limited to the exact immutable Work Claim foundation
+  slice above. A future implementation PR requires a full Implementation Review Gate,
+  CI, and merge review.
+- Material deviation requires an amended or new ADR, another Architecture Review
+  Gate where applicable, and separate implementation authorization.
 - Execution Attempt and every later runtime layer remain unauthorized.
-- Further implementation requires separate explicit authorization.
+- No Governance Review Gate `PASS`, Ready transition, comment, or CI result can make
+  the candidate effective before PR #28 merges.
 
 ---
 
