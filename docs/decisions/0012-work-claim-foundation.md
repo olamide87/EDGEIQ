@@ -145,24 +145,27 @@ organization_id
 workload_context_id
 plan_id
 work_item_id
-claim_generation
 ```
 
-This key defines one exclusive claim cycle for one immutable planned-work item.
-Candidate identity, claimant identity, and Dispatch identity are canonical claim
-inputs but are deliberately excluded from the stream key. Consequently:
+This key defines one authoritative work-item lineage containing every Work Claim
+lifecycle transition for one immutable planned-work item. Claim generation,
+candidate identity, claimant identity, Dispatch identity, authentication evidence,
+policy version, and semantic effective-time evidence are canonical transition inputs
+but are deliberately excluded from the stream key. Consequently:
 
 - different claimants compete in one stream;
 - approvals for different candidates compete in one stream;
 - at most one active accepted claim exists for the work item and generation;
+- generation creation, acceptance, rejection, expiry, release, supersession, and
+  transition into a later generation are serialized in the same history;
 - unrelated work items do not conflict;
 - different organizations and workloads remain isolated; and
-- a later claim cycle uses a later generation without rewriting prior history.
+- a later claim cycle appends a later generation without changing stream identity or
+  rewriting prior history.
 
-The first four fields also form the exclusive work-item lineage. Admission of a new
-generation and issuance of its first fence are serialized by one Work Claim-owned
-concurrency boundary for that lineage. This is owner-scoped concurrency, not assumed
-cross-component or global atomicity.
+The lineage stream is the sole authoritative exclusivity and CAS boundary. There is
+no generation-owned stream, secondary generation counter, or cross-stream
+coordination contract.
 
 ## Claim generation
 
@@ -170,21 +173,29 @@ A claim generation is the canonical boundary between one exclusive claim cycle a
 later re-claim cycle.
 
 - The initial generation begins only when applicable approved Dispatch evidence and
-  complete claimant and policy evidence are evaluated against an empty claim lineage.
+  complete claimant and policy evidence are evaluated against an empty lineage and a
+  first-generation event is accepted under expected-version CAS.
 - An accepted generation remains current until immutable expiry or release evidence
   ends its applicability.
 - Rejection does not create an active holder and does not itself advance generation.
 - A later generation is permitted only when exact claim policy and retained history
   prove that the preceding accepted generation is expired or released.
+- Creating a generation is an append to the existing work-item lineage. The append
+  proves that no active applicable claim remains, the prior accepted generation ended
+  through valid expiry or release evidence, policy permits re-claim, and the proposed
+  generation is the unique next generation.
 - Newer Dispatch evidence alone does not end an active generation or silently create
   a new one.
 - A later generation retains the terminal evidence from the preceding generation as
   causation.
-- Generation participates in stream identity, canonical input, idempotency, fencing,
-  and reconstruction.
+- Generation participates in canonical transition content, idempotency, fencing, and
+  reconstruction, but never in stream identity.
 
-Generation is an owner-scoped monotonic semantic value reconstructed from retained
-claim lineage. This ADR selects no database counter, sequence, lock, or service.
+Generation is a deterministic owner-assigned monotonic ordinal derived from committed
+lineage history. The caller cannot select or advance it. Two writers proposing the
+same next generation use the same lineage expected version, so at most one successor
+is accepted; a loser reloads and recomputes. This ADR selects no database counter,
+sequence, lock, or service.
 
 ## Fencing
 
@@ -198,13 +209,25 @@ consumers from stale holders after expiry, release, or later re-claim.
   identity, generation, and fence.
 - Fence issuance belongs solely to Work Claim persistence and concurrency semantics.
 - A fence is assigned atomically with accepted claim evidence.
+- Rejection, expiry, and release do not advance, reduce, or reuse a fence.
 - Timestamps, process order, persistence-return order, and last-write-wins never
   determine a fence.
 
-The fence is the monotonic ordinal of an accepted transition in the authoritative
-exclusive lineage. A repository may implement that ordinal using a stream version or
-another owner-scoped monotonic mechanism, but replay must derive and verify the same
-value from immutable history.
+The fence is the owner-assigned monotonic acceptance ordinal derived from committed
+lineage history. Only an accepted transition advances the acceptance-fence ordinal.
+Every lifecycle event advances lineage stream version, but rejection, expiry,
+release, and generation creation do not become fences. A later accepted transition
+receives the prior maximum fence plus one, regardless of generation. Replay derives
+and verifies the same acceptance ordinal from immutable lineage history.
+
+Lineage stream version, claim generation, and fence are distinct:
+
+- lineage stream version orders every Work Claim lifecycle event;
+- claim generation identifies one exclusive claim cycle within that lineage; and
+- fence orders accepted claims across the complete lineage.
+
+Event count is not accepted-claim count, generation is not stream identity, and
+stream version is not a fence.
 
 ## Expiry
 
@@ -301,25 +324,39 @@ current pointer.
 
 A different claimant, Dispatch Decision, generation, policy, evidence boundary, or
 semantic time is different canonical input and must not collapse into an earlier
-claim. Idempotency grants no lease or execution authority.
+claim. Equivalent retry must match the lineage identity, owner-resolved expected
+generation, exact Dispatch and claimant evidence, policy, semantic time and evidence
+boundary, and canonical content. A later generation requires a distinct canonical
+input and idempotency identity. Idempotency cannot create or select a generation
+outside the lineage CAS transition and grants no lease or execution authority.
 
 ## Concurrency
 
-Every authoritative Work Claim append supplies the expected stream or lineage
-version.
+Every authoritative Work Claim lifecycle append supplies the expected version of the
+same work-item lineage stream. This includes first-generation creation, claim
+attempts, retained rejection, acceptance, expiry, release, and later-generation
+creation.
 
 - At most one writer for one expected version succeeds.
 - Competing claimants and candidate-specific Dispatch approvals serialize within the
-  same exclusive generation.
+  same lineage and generation.
 - At most one accepted claim becomes active in a generation.
 - A stale writer appends nothing, reloads committed history, and recomputes.
 - Equivalent retries converge through scoped idempotency.
 - Conflicting immutable evidence fails explicitly rather than being merged.
-- Claim/release and claim/expiry races resolve through version conflict and
-  re-evaluation against committed history.
+- Two writers creating the same next generation race on one expected lineage version;
+  one succeeds and the loser reloads the committed generation.
+- Claim/release and claim/expiry races have one successor per expected version; the
+  loser reloads and fails or recomputes against the resulting applicability state.
+- Release/expiry races have one terminal successor; a stale incompatible terminal
+  transition appends nothing.
+- Later-generation creation racing with a late lifecycle append has one successor;
+  generation creation remains invalid until committed history proves prior terminal
+  evidence and no active applicable claim.
 - A re-claim requires a valid later generation and strictly newer fence.
 - Timestamp arbitration and last-write-wins are prohibited.
-- Cross-stream and cross-component atomicity are not assumed.
+- No cross-generation, cross-stream, or cross-component atomicity is assumed or
+  required.
 - A current pointer may reference only committed immutable evidence.
 
 ## Immutable Work Claim evidence
@@ -385,17 +422,21 @@ claim content, and digest.
 
 Reconstruction must:
 
-1. load complete Work Claim lineage and generation history through the required
-   version;
-2. validate contiguous versions, generation transitions, and fence monotonicity;
+1. load the complete work-item lineage history through the required version;
+2. validate contiguous lineage stream versions;
 3. resolve and reconstruct the exact approved Dispatch Decision;
 4. verify claimant identity and authentication evidence;
 5. resolve the exact claim policy and configuration;
 6. verify retained semantic time, expiry, and release evidence;
-7. replay acceptance, rejection, expiry, and release rules;
-8. reproduce fence, outcome, reasons, identity, canonical content, and digest; and
-9. fail closed on missing evidence, unsupported versions, invalid causality, or
-   divergence without mutation.
+7. replay generation creation, acceptance, rejection, expiry, release, and
+   supersession rules;
+8. reproduce every generation boundary, current and ended generation, accepted
+   claimant, acceptance fence, current derived claim, and next permitted generation;
+9. reproduce outcome, reasons, identity, canonical content, and digest; and
+10. fail closed on skipped, duplicated, or non-monotonic generations; duplicate or
+    non-monotonic fences; multiple accepted claims in one generation; a later
+    generation before valid prior termination; lineage gaps; missing evidence;
+    unsupported versions; invalid causality; or replay divergence without mutation.
 
 Replay must not consult current queues, live workers, current projections, providers,
 ambient configuration, current time, execution results, or external systems. Replay
@@ -457,18 +498,21 @@ No federation behavior is defined or authorized.
 
 One successful Work Claim append may atomically publish only:
 
-- immutable Work Claim evidence;
-- its history entry;
-- a repository-owned current pointer or index; and
-- authoritative fence assignment where the Work Claim repository controls it.
+- one immutable lineage event;
+- updated lineage history;
+- a repository-owned derived current pointer or index;
+- generation assignment when the event creates a generation;
+- fence assignment when the event accepts a claim; and
+- the scoped idempotency index entry.
 
 It must not atomically create or modify an Execution Lease, Queue Envelope, Execution
 Attempt, Completion Evidence, or external effect. Failure before publication exposes
-no partial claim, fence, history, idempotency entry, or pointer and preserves prior
-accepted state.
+no partial event, generation, fence, history, idempotency entry, or pointer and
+preserves prior accepted state. All permitted publications belong to the same Work
+Claim owner and the same lineage commit.
 
 Transaction co-location and shared storage do not transfer semantic ownership.
-Cross-stream atomicity is not assumed.
+Cross-stream atomicity is neither assumed nor required.
 
 ## Overlap-stop rule
 
@@ -495,10 +539,21 @@ another owner or requires an amended or new ADR and another Architecture Review 
   exclusive bounded acceptance have different owners, aggregate keys, and races.
 - **Use Execution Lease as the claim:** rejected because a lease owns bounded
   permission and authority applicability, not claimant acceptance or exclusivity.
+- **Use one stream per generation:** rejected because separate generation streams
+  cannot serialize generation admission or guarantee lineage-monotonic fences without
+  hidden cross-stream atomicity.
 - **Use candidate-specific claim streams:** rejected because approvals for different
-  candidates must compete for one exclusive work-item generation.
+  candidates must compete in one authoritative work-item lineage.
 - **Use claimant-specific claim streams:** rejected because independent claimant
   streams could each accept the same exclusive work.
+- **Use stream version directly as the acceptance fence:** rejected because generation
+  creation, rejection, expiry, and release advance lineage version but must not
+  advance or become an acceptance fence.
+- **Coordinate generation through multiple streams:** rejected because generation
+  creation, termination, and re-claim require one owner-scoped CAS boundary, not a
+  cross-stream transaction.
+- **Derive generation or fence from timestamps:** rejected because timestamps are
+  evidence rather than authoritative ordering or concurrency control.
 - **Use one mutable current-claim record:** rejected because it overwrites acceptance,
   expiry, and release history and prevents deterministic reconstruction.
 - **Use Queue Envelope possession as claim truth:** rejected because transport and
@@ -554,42 +609,56 @@ ADR 0012 does not define or authorize:
 
 1. Work Claim owns exclusive bounded acceptance only.
 2. Work Claim consumes one applicable approved Dispatch Decision.
-3. At most one active accepted claim exists per exclusive work item and generation.
-4. Competing claimants and candidate-specific offers serialize in one stream.
-5. Every accepted claim receives an authoritative fence.
-6. A later accepted claim has a strictly newer fence.
-7. Claim acceptance grants no lease or execution authority.
-8. Claim acceptance starts no execution and publishes no queue message.
-9. Expiry and release append new evidence and never overwrite acceptance.
-10. Equivalent retries return the same canonical result without duplicate history.
-11. Conflicting idempotency reuse fails and changes no state.
-12. Stale writers append nothing and cannot advance a pointer or fence.
-13. Derived current-claim state is reconstructable from immutable history.
-14. Replay uses no live state, current time, provider, or external system.
-15. Absent and foreign evidence are externally indistinguishable.
-16. Execution Attempt remains the direct downstream semantic consumer.
-17. ADR 0012 preserves the ownership boundaries of ADRs 0007 through 0011.
-18. ADR 0012 authorizes no implementation.
+3. One authoritative lineage stream exists per organization, workload, plan, and work
+   item.
+4. Claim generation is immutable lineage event content, not stream identity.
+5. Every lifecycle transition uses expected-version CAS on the lineage stream.
+6. Only one unique next generation can be created, and an active generation must end
+   through valid expiry or release before another begins.
+7. At most one active accepted claim exists per exclusive work item and generation.
+8. Competing claimants and candidate-specific offers serialize in one lineage.
+9. Every accepted claim receives a lineage-monotonic fence.
+10. Fence is distinct from lineage stream version and claim generation.
+11. Rejection, expiry, and release cannot advance, reduce, or reuse a fence.
+12. Claim acceptance grants no lease or execution authority.
+13. Claim acceptance starts no execution and publishes no queue message.
+14. Expiry and release append new evidence and never overwrite acceptance.
+15. Equivalent retries return the same canonical result without duplicate history.
+16. Conflicting idempotency reuse fails and changes no state.
+17. Stale writers append nothing and cannot advance generation, pointer, or fence.
+18. Reconstruction rejects generation, lineage-version, and fence divergence.
+19. Derived current-claim state is reconstructable from immutable lineage history.
+20. No cross-stream atomicity is required.
+21. Replay uses no live state, current time, provider, or external system.
+22. Absent and foreign evidence are externally indistinguishable.
+23. Execution Attempt remains the direct downstream semantic consumer.
+24. ADR 0012 preserves the ownership boundaries of ADRs 0007 through 0011.
+25. ADR 0012 authorizes no implementation.
 
 ## Architecture review questions
 
 1. Is Work Claim's owned decision singular and exact?
 2. Is Dispatch Decision the correct direct upstream evidence?
-3. Is the exclusivity boundary correct?
-4. Should candidate, claimant, and Dispatch identities remain outside the stream key?
-5. Is claim generation sufficiently defined and serialized across re-claim cycles?
-6. Is fence derivation monotonic, reconstructable, and owner-scoped?
-7. Are expiry and release append-only and reconstructable?
-8. Is claimant evidence sufficiently authoritative without transferring identity,
+3. Is one work-item lineage stream the correct exclusive owner?
+4. Is generation correctly represented as immutable lineage content rather than
+   stream identity?
+5. Can only one unique next generation be created under lineage CAS?
+6. Are lineage stream version, claim generation, and fence clearly distinct?
+7. Are fences strictly monotonic across the complete work-item lineage?
+8. Can rejection, expiry, or release interfere with fence derivation?
+9. Are all claim, release, expiry, and re-claim races resolved in one lineage without
+   cross-stream atomicity?
+10. Is deterministic lineage reconstruction complete and fail-closed?
+11. Are expiry and release append-only and reconstructable?
+12. Is claimant evidence sufficiently authoritative without transferring identity,
    trust, or authorization ownership?
-9. Are rejection and failure distinct?
-10. Is the idempotency scope complete?
-11. Are competing claimants and candidate-specific offers safely serialized?
-12. Does the Execution Lease relationship preserve ADR 0011?
-13. Is Execution Attempt the correct downstream consumer?
-14. Are absent and foreign evidence externally indistinguishable?
-15. Does ADR 0012 preserve ADRs 0007 through 0011?
-16. Does ADR 0012 authorize no implementation or next milestone?
+13. Are rejection and failure distinct?
+14. Is the idempotency scope complete?
+15. Does the Execution Lease relationship preserve ADR 0011?
+16. Is Execution Attempt the correct downstream consumer?
+17. Are absent and foreign evidence externally indistinguishable?
+18. Does ADR 0012 preserve ADRs 0007 through 0011?
+19. Does ADR 0012 authorize no implementation or next milestone?
 
 ## Governance and implementation gate
 
