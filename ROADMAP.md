@@ -20,7 +20,7 @@ complexity is earned through reproducibility and held-out evidence.
 | v0.9A | Execution Request Foundation | Complete |
 | v0.9B | Immutable Execution Plan Foundation | Complete |
 | v0.10A | Dispatch Decision Foundation | Complete |
-| v0.10B | Work Claim Foundation | Implementation authorized; not started |
+| v0.10B | Work Claim Foundation | Implementation candidate in Draft PR review |
 | v1.0 | Public Beta | Planned |
 
 ## v0.5 promotion sequence
@@ -89,8 +89,8 @@ promotion is authorized; learned models remain governed research candidates.
   Gate passed. The separate authorization package passed its Governance Review Gate
   and CI and was squash-merged through PR #28 at
   `6d8e22a1e226198b7df8e3ac846ef2672ede29de`. The bounded v0.10B implementation
-  authorization is now effective, but implementation has not started and every later
-  effect remains deferred.
+  authorization is now effective. A bounded implementation candidate exists in its
+  Draft PR, remains unmerged, and every later effect remains deferred.
 - v1.0 and later items remain future planning. Release labels do not establish or
   substitute for the objective Prototype acceptance criteria below.
 
@@ -235,9 +235,11 @@ squash-merged through PR #28 at
 effective. The earlier PR opening, CI, review, Ready, and governance-comment states
 did not authorize implementation before merge.
 
-Implementation has not started and v0.10B is not implemented. No runtime code or Work
-Claim implementation has been merged. No Execution Attempt, Queue Envelope,
-monitoring, or completion implementation exists.
+The bounded implementation candidate exists on
+`feature/v0.10b-work-claim-foundation` and in this Draft PR. It remains unmerged and
+must pass a full Implementation Review Gate, CI, and merge review. No Work Claim
+implementation has merged into `main`; v0.10B is not complete. No Execution Attempt,
+Queue Envelope, monitoring, completion, or later runtime implementation exists.
 
 The authorized slice is limited to:
 
@@ -348,7 +350,17 @@ organization/workload isolation; absent-versus-foreign non-disclosure; and downs
 exclusions. They cannot require Execution Attempt, queues, execution, monitoring,
 completion, retries, orchestration, or external integrations.
 
-Any future implementation PR must stay within this exact slice and pass a full
+The candidate implements only frozen inputs and immutable lineage events; canonical
+UTF-8 serialization; deterministic lineage/event identities and SHA-256 digests;
+verification-only retained Dispatch and claimant evidence; one registered versioned
+claim policy; owner-assigned generation and acceptance-only fences; append-only
+generation, acceptance, retained rejection, expiry, and release evidence; scoped
+idempotency; expected-version CAS; rollback-safe copy-on-write publication;
+deterministic reconstruction; and scope-safe process-local evidence/history access.
+It adds no public API, migration, durable adapter, queue, attempt, execution behavior,
+or external effect.
+
+This implementation PR must stay within the exact authorized slice and pass a full
 Implementation Review Gate, CI, and merge review.
 Material deviation requires an amended or new ADR, another Architecture Review Gate
 where applicable, and separate implementation authorization. This candidate does not
