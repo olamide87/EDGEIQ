@@ -2,9 +2,9 @@
 
 Document Status: Current
 
-Applies To: `main @ 706f43525b208b6f0a327834b4b71336f7f41214`
+Applies To: `main @ 6d8e22a1e226198b7df8e3ac846ef2672ede29de`
 
-Last Updated: 2026-08-06
+Last Updated: 2026-08-09
 
 Maintainers: EDGEIQ Maintainers
 
@@ -12,7 +12,7 @@ Maintainers: EDGEIQ Maintainers
 
 # Current Release
 
-**v0.10B — Work Claim Foundation Authorization Candidate (Draft / Ineffective)**
+**v0.10B — Work Claim Foundation Implementation Authorized (Not Started)**
 
 ---
 
@@ -64,13 +64,15 @@ squash-merged through PR #26 at
 ADR 0012 — Work Claim Foundation was squash-merged into `main` through PR #27 at
 `706f43525b208b6f0a327834b4b71336f7f41214`. ADR 0012 remains Proposed and its
 Architecture Review Gate passed after the work-item lineage and fencing remediation.
-Draft PR #28 is an unmerged documentation-only authorization candidate for the
-bounded v0.10B immutable Work Claim Foundation defined below. Authorization is not
-currently effective: opening PR #28, CI passing, a Governance Review Gate `PASS`,
-marking the PR Ready, or adding a governance comment does not authorize
-implementation. Authorization becomes effective only when PR #28 is merged into
-`main`. Until that merge, Work Claim implementation remains prohibited and has not
-started; v0.10B is not implemented.
+The documentation-only Work Claim implementation authorization package passed its
+Governance Review Gate and CI and was squash-merged through PR #28 at
+`6d8e22a1e226198b7df8e3ac846ef2672ede29de`. The bounded authorization defined below
+is now effective. ADR 0012 remains Proposed and was not modified by the authorization
+package.
+
+Implementation has not started. No runtime code or Work Claim implementation has
+been merged. No Execution Attempt, Queue Envelope, monitoring, or completion
+implementation exists.
 
 ---
 
@@ -167,16 +169,17 @@ through PR #23.
 This foundation passed its Implementation Review Gate and CI and was squash-merged
 through PR #26.
 
-## Draft Work Claim Foundation Authorization Candidate
+## Effective Work Claim Foundation Implementation Authorization
 
-ADR 0012 is the sole architectural basis for this candidate and remains Proposed.
-ADRs 0007–0011 remain controlling. ADR 0012's Architecture Review Gate passed, but
-architectural review and this Draft PR do not themselves authorize implementation.
+ADR 0012 is the sole architectural basis for this authorization and remains Proposed.
+ADRs 0007–0011 remain controlling. ADR 0012's Architecture Review Gate passed, and
+the separate implementation authorization package passed its Governance Review Gate
+and CI before its squash merge through PR #28. ADR 0012 itself was not modified.
 
-If and only if PR #28 is merged into `main`, the effective authorization is limited
-to:
+Because PR #28 merged into `main`, implementation authorization is now effective and
+limited to:
 
-- immutable Work Claim lineage events and records;
+- immutable Work Claim artifacts, including lineage events and records;
 - canonical UTF-8 serialization, deterministic identities, and canonical digests;
 - one authoritative lineage keyed only by `organization_id`,
   `workload_context_id`, `plan_id`, and `work_item_id`;
@@ -332,7 +335,7 @@ or external integrations.
 | Task Submission | Not Started |
 | Dispatch | Foundation complete |
 | Scheduling | Deferred |
-| Claims & Leases | Draft Work Claim authorization candidate; ineffective until PR #28 merges; lease changes deferred |
+| Claims & Leases | Work Claim foundation implementation authorized but not started; lease changes deferred |
 | Worker Execution | Not Started |
 | Retry Handling | Deferred |
 | Orchestration | Deferred |
@@ -370,13 +373,13 @@ Deferred capabilities require future planning and, where applicable, architectur
 - Prototype readiness depends on satisfying every acceptance criterion defined in
   `ROADMAP.md`; v0.9A and v0.9B together remain insufficient.
 - v0.9B is complete on `main`, but it does not provide an end-to-end runtime path.
-- Runtime milestones downstream of the proposed v0.10B foundation remain
+- Runtime milestones downstream of the authorized v0.10B foundation remain
   unauthorized.
 - The completed v0.10A foundation records Dispatch approval or denial only. It
   provides no Work Claim, queue transport, execution path, external effect, or
   end-to-end prototype.
-- The Draft v0.10B authorization candidate is limited to the immutable Work Claim
-  foundation and is ineffective until PR #28 merges into `main`. It
+- The effective v0.10B authorization is limited to the immutable Work Claim
+  foundation. It
   grants no Execution Attempt, execution, monitoring, completion, retry, scheduling,
   orchestration, provider, API, migration, durable-persistence, or external-effect
   authority.
@@ -402,17 +405,19 @@ Deferred capabilities require future planning and, where applicable, architectur
 - The separately authorized v0.10A immutable Dispatch Decision foundation passed its
   Implementation Review Gate and CI and was squash-merged through PR #26.
 - ADR 0012 is merged, remains Proposed, and its Architecture Review Gate passed.
-- PR #28 is Draft and unmerged. Its v0.10B implementation authorization candidate is
-  ineffective until merge into `main`; Work Claim implementation has not started and
-  v0.10B is not implemented.
-- If merged, authorization is limited to the exact immutable Work Claim foundation
-  slice above. A future implementation PR requires a full Implementation Review Gate,
-  CI, and merge review.
+- The v0.10B implementation authorization package passed its Governance Review Gate
+  and CI and was squash-merged through PR #28 at
+  `6d8e22a1e226198b7df8e3ac846ef2672ede29de`; authorization is now effective.
+- Work Claim implementation has not started, v0.10B is not implemented, and no Work
+  Claim runtime code has been merged.
+- Authorization is limited to the exact immutable Work Claim foundation slice above.
+  A future implementation PR requires a full Implementation Review Gate, CI, and
+  merge review.
 - Material deviation requires an amended or new ADR, another Architecture Review
   Gate where applicable, and separate implementation authorization.
 - Execution Attempt and every later runtime layer remain unauthorized.
-- No Governance Review Gate `PASS`, Ready transition, comment, or CI result can make
-  the candidate effective before PR #28 merges.
+- PR #28's merge into `main`, rather than its earlier pre-merge CI, review, Ready, or
+  comment state, made the authorization effective.
 
 ---
 
