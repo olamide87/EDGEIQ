@@ -20,7 +20,7 @@ complexity is earned through reproducibility and held-out evidence.
 | v0.9A | Execution Request Foundation | Complete |
 | v0.9B | Immutable Execution Plan Foundation | Complete |
 | v0.10A | Dispatch Decision Foundation | Complete |
-| v0.10B | Work Claim Foundation | Draft authorization candidate; ineffective until PR #28 merges |
+| v0.10B | Work Claim Foundation | Implementation authorized; not started |
 | v1.0 | Public Beta | Planned |
 
 ## v0.5 promotion sequence
@@ -86,10 +86,11 @@ promotion is authorized; learned models remain governed research candidates.
   Review Gate passed. The separately authorized bounded v0.10A immutable Dispatch
   Decision foundation passed its Implementation Review Gate and was merged.
 - ADR 0012 defines the Proposed Work Claim Foundation and its Architecture Review
-  Gate passed. Draft PR #28 is an unmerged authorization candidate; authorization is
-  ineffective until that PR merges into `main`. Work Claim implementation has not
-  started, v0.10B is not implemented, and Execution Attempt and every later effect
-  remain deferred.
+  Gate passed. The separate authorization package passed its Governance Review Gate
+  and CI and was squash-merged through PR #28 at
+  `6d8e22a1e226198b7df8e3ac846ef2672ede29de`. The bounded v0.10B implementation
+  authorization is now effective, but implementation has not started and every later
+  effect remains deferred.
 - v1.0 and later items remain future planning. Release labels do not establish or
   substitute for the objective Prototype acceptance criteria below.
 
@@ -224,15 +225,19 @@ milestones were not authorized by that merge.
 
 ### v0.10B — Work Claim Foundation
 
-ADR 0012 is the sole architectural basis for this candidate and remains Proposed;
-ADRs 0007–0011 remain controlling. ADR 0012's Architecture Review Gate passed, but
-its publication, architectural review, and merge did not authorize implementation.
+ADR 0012 is the sole architectural basis for this authorization and remains Proposed;
+ADRs 0007–0011 remain controlling. ADR 0012's Architecture Review Gate passed, and
+ADR 0012 itself was not modified by the separate implementation authorization.
 
-PR #28 is Draft and unmerged. Authorization is not currently effective. Opening the
-PR, CI passing, a Governance Review Gate `PASS`, marking the PR Ready, or adding a
-governance comment does not authorize implementation. Authorization becomes
-effective only when PR #28 is merged into `main`. Until that merge, Work Claim
-implementation remains prohibited and has not started; v0.10B is not implemented.
+The authorization package passed its Governance Review Gate and CI and was
+squash-merged through PR #28 at
+`6d8e22a1e226198b7df8e3ac846ef2672ede29de`. That merge made the bounded authorization
+effective. The earlier PR opening, CI, review, Ready, and governance-comment states
+did not authorize implementation before merge.
+
+Implementation has not started and v0.10B is not implemented. No runtime code or Work
+Claim implementation has been merged. No Execution Attempt, Queue Envelope,
+monitoring, or completion implementation exists.
 
 The authorized slice is limited to:
 
@@ -242,9 +247,9 @@ Applicable approved Dispatch Decision + authenticated claimant evidence
     -> immutable Work Claim evidence
 ```
 
-If and only if PR #28 merges, implementation may include only:
+The effective implementation authorization permits only:
 
-- immutable Work Claim lineage events and records;
+- immutable Work Claim artifacts, including lineage events and records;
 - canonical UTF-8 serialization, deterministic identities, and canonical digests;
 - one authoritative work-item lineage stream keyed only by `organization_id`,
   `workload_context_id`, `plan_id`, and `work_item_id`;
@@ -343,8 +348,8 @@ organization/workload isolation; absent-versus-foreign non-disclosure; and downs
 exclusions. They cannot require Execution Attempt, queues, execution, monitoring,
 completion, retries, orchestration, or external integrations.
 
-After authorization becomes effective, a future implementation PR must stay within
-this exact slice and pass a full Implementation Review Gate, CI, and merge review.
+Any future implementation PR must stay within this exact slice and pass a full
+Implementation Review Gate, CI, and merge review.
 Material deviation requires an amended or new ADR, another Architecture Review Gate
 where applicable, and separate implementation authorization. This candidate does not
 make ADR 0012 Accepted, authorize a later milestone, establish an end-to-end runtime
@@ -352,10 +357,10 @@ path or prototype, or grant execution authority.
 
 ## Roadmap governance
 
-`ROADMAP.md` records planned sequencing and acceptance targets. A Draft authorization
-candidate recorded here is ineffective until its authorizing PR merges into `main`.
-The roadmap does not approve architecture, supersede ADRs, or make authorization
-effective through publication, CI, review, comments, or Ready status.
+`ROADMAP.md` records planned sequencing and acceptance targets. The Work Claim
+authorization became effective only when its authorization package merged through PR
+#28. The roadmap does not approve architecture, supersede ADRs, or make future
+authorization effective through publication, CI, review, comments, or Ready status.
 
 New architectural capability requires an accepted ADR and a successful Architecture
 Review Gate. Implementation begins only after a separate explicit authorization
