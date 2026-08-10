@@ -87,7 +87,7 @@ class RegisteredWorkClaimPolicy:
                     None,
                     state.accepted_event.event_id,
                 )
-            if claimant.selected_candidate_id != dispatch.decision.selected_candidate_id:
+            if not _claimant_matches_dispatch_candidate(claimant, dispatch):
                 return WorkClaimDecision(
                     WorkClaimEventType.CLAIM_REJECTED,
                     WorkClaimOutcome.REJECTED,
@@ -125,6 +125,13 @@ class RegisteredWorkClaimPolicy:
         if request.operation is WorkClaimOperation.RELEASE:
             if claimant.claimant_id != state.accepted_event.claimant_id:
                 raise WorkClaimIllegalTransition("Only the retained current claimant may release the claim.")
+            if (
+                not _claimant_matches_dispatch_candidate(claimant, dispatch)
+                or claimant.selected_candidate_id != state.accepted_event.selected_candidate_id
+            ):
+                raise WorkClaimIllegalTransition(
+                    "Retained claimant evidence does not match the accepted Dispatch-selected candidate."
+                )
             return WorkClaimDecision(
                 WorkClaimEventType.CLAIM_RELEASED,
                 WorkClaimOutcome.RELEASED,
@@ -135,6 +142,13 @@ class RegisteredWorkClaimPolicy:
                 state.accepted_event.event_id,
             )
         raise WorkClaimIllegalTransition("Unsupported Work Claim operation.")
+
+
+def _claimant_matches_dispatch_candidate(
+    claimant: RetainedClaimantEvidence,
+    dispatch: DispatchDecisionRecord,
+) -> bool:
+    return claimant.selected_candidate_id == dispatch.decision.selected_candidate_id
 
 
 def _policy(policy_id: str, policy_version: str, claim_ttl_seconds: int) -> RegisteredWorkClaimPolicy:

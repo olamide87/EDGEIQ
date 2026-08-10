@@ -407,6 +407,39 @@ def test_release_accepts_new_retained_authentication_evidence_for_same_claimant(
     assert released.claimant_reference.artifact_id == renewed.evidence_id
 
 
+def test_release_rejects_same_claimant_evidence_for_different_selected_candidate() -> None:
+    context = Context()
+    generation = context.generation()
+    accepted = context.accept()
+    wrong_candidate = context.add_claimant(
+        "claimant-evidence:same-claimant-wrong-candidate",
+        claimant_id="claimant-1",
+        selected_candidate_id="worker-2",
+    )
+    lineage_key = context.request().lineage_key
+    history_before = context.repository.history(lineage_key)
+    current_before = context.repository.current(lineage_key)
+    repository_state_before = context.repository._state
+
+    with pytest.raises(WorkClaimIllegalTransition, match="Dispatch-selected candidate"):
+        context.evaluate(
+            WorkClaimOperation.RELEASE,
+            expected_lineage_version=2,
+            idempotency_key="release-wrong-candidate",
+            claimant=wrong_candidate,
+            semantic_at=NOW + timedelta(minutes=1),
+            release_reason="invalid",
+        )
+
+    assert context.repository._state is repository_state_before
+    assert context.repository.history(lineage_key) == history_before
+    assert context.repository.current(lineage_key) is current_before is accepted
+    assert len(history_before) == 2
+    assert accepted.lineage_version == 2
+    assert accepted.generation == generation.generation == 1
+    assert accepted.fence == 1
+
+
 def test_equivalent_retry_returns_existing_and_conflicting_reuse_fails() -> None:
     context = Context()
     request = context.request()
