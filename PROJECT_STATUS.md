@@ -12,7 +12,7 @@ Maintainers: EDGEIQ Maintainers
 
 # Current Release
 
-**v0.10B — Work Claim Foundation Implementation Authorized (Not Started)**
+**v0.10B — Work Claim Foundation Implementation Candidate**
 
 ---
 
@@ -70,9 +70,12 @@ Governance Review Gate and CI and was squash-merged through PR #28 at
 is now effective. ADR 0012 remains Proposed and was not modified by the authorization
 package.
 
-Implementation has not started. No runtime code or Work Claim implementation has
-been merged. No Execution Attempt, Queue Envelope, monitoring, or completion
-implementation exists.
+The authorized v0.10B Work Claim Foundation implementation candidate now exists on
+`feature/v0.10b-work-claim-foundation` and in its Draft PR. It remains unmerged and
+must pass a full Implementation Review Gate, CI, and merge review. No Work Claim
+implementation has been merged into `main`; v0.10B is not complete. No Execution
+Attempt, Queue Envelope, monitoring, completion, or other downstream implementation
+exists.
 
 ---
 
@@ -277,6 +280,16 @@ absent-versus-foreign non-disclosure; and downstream exclusions. Tests must not
 require attempts, queues, execution, monitoring, completion, retry, orchestration,
 or external integrations.
 
+The current implementation candidate supplies only this process-local foundation:
+frozen public inputs and lineage events; canonical UTF-8 content; deterministic
+lineage/event identities and SHA-256 digests; retained Dispatch and claimant evidence
+verification; one registered versioned claim policy; owner-derived generation and
+acceptance fences; append-only generation, acceptance, retained rejection, expiry,
+and release events; scoped idempotency; expected-version CAS; rollback-safe
+copy-on-write publication; deterministic reconstruction; and scope-safe in-memory
+evidence/history access. It adds no API, migration, durable adapter, queue, attempt,
+execution behavior, or external effect.
+
 ## Replay & Audit
 
 - Replay metadata
@@ -311,8 +324,9 @@ or external integrations.
 | Execution Request tests | 34 passed |
 | Execution Plan tests | 35 passed |
 | Dispatch Decision tests | 51 passed |
-| Runtime tests | 147 passed |
-| Full test suite | 308 passed |
+| Work Claim tests | 33 passed |
+| Runtime tests | 180 passed |
+| Full test suite | 341 passed |
 | Python compilation | PASS |
 | CI | PASS |
 | `git diff --check` | PASS |
@@ -335,7 +349,7 @@ or external integrations.
 | Task Submission | Not Started |
 | Dispatch | Foundation complete |
 | Scheduling | Deferred |
-| Claims & Leases | Work Claim foundation implementation authorized but not started; lease changes deferred |
+| Claims & Leases | Work Claim foundation candidate in Draft PR review; lease changes deferred |
 | Worker Execution | Not Started |
 | Retry Handling | Deferred |
 | Orchestration | Deferred |
@@ -378,7 +392,7 @@ Deferred capabilities require future planning and, where applicable, architectur
 - The completed v0.10A foundation records Dispatch approval or denial only. It
   provides no Work Claim, queue transport, execution path, external effect, or
   end-to-end prototype.
-- The effective v0.10B authorization is limited to the immutable Work Claim
+- The unmerged v0.10B candidate is limited to the authorized immutable Work Claim
   foundation. It
   grants no Execution Attempt, execution, monitoring, completion, retry, scheduling,
   orchestration, provider, API, migration, durable-persistence, or external-effect
@@ -408,11 +422,11 @@ Deferred capabilities require future planning and, where applicable, architectur
 - The v0.10B implementation authorization package passed its Governance Review Gate
   and CI and was squash-merged through PR #28 at
   `6d8e22a1e226198b7df8e3ac846ef2672ede29de`; authorization is now effective.
-- Work Claim implementation has not started, v0.10B is not implemented, and no Work
-  Claim runtime code has been merged.
+- The Work Claim implementation candidate exists on its feature branch and Draft PR,
+  but no Work Claim runtime code has been merged into `main` and v0.10B is not
+  complete.
 - Authorization is limited to the exact immutable Work Claim foundation slice above.
-  A future implementation PR requires a full Implementation Review Gate, CI, and
-  merge review.
+  The candidate requires a full Implementation Review Gate, CI, and merge review.
 - Material deviation requires an amended or new ADR, another Architecture Review
   Gate where applicable, and separate implementation authorization.
 - Execution Attempt and every later runtime layer remain unauthorized.
