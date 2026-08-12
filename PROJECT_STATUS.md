@@ -2,9 +2,9 @@
 
 Document Status: Current
 
-Applies To: `main @ 6d8e22a1e226198b7df8e3ac846ef2672ede29de`
+Applies To: `main @ df6cc09edbd2adae871b75aabab407debdcd8f4b`
 
-Last Updated: 2026-08-09
+Last Updated: 2026-08-10
 
 Maintainers: EDGEIQ Maintainers
 
@@ -12,7 +12,7 @@ Maintainers: EDGEIQ Maintainers
 
 # Current Release
 
-**v0.10B — Work Claim Foundation Implementation Candidate**
+**v0.10B — Work Claim Foundation**
 
 ---
 
@@ -70,11 +70,13 @@ Governance Review Gate and CI and was squash-merged through PR #28 at
 is now effective. ADR 0012 remains Proposed and was not modified by the authorization
 package.
 
-The authorized v0.10B Work Claim Foundation implementation candidate now exists on
-`feature/v0.10b-work-claim-foundation` and in its Draft PR. It remains unmerged and
-must pass a full Implementation Review Gate, CI, and merge review. No Work Claim
-implementation has been merged into `main`; v0.10B is not complete. No Execution
-Attempt, Queue Envelope, monitoring, completion, or other downstream implementation
+The authorized v0.10B Work Claim Foundation passed its Implementation Review Gate
+with non-blocking documentation notes and passed CI before PR #30 was squash-merged
+into `main` at `df6cc09edbd2adae871b75aabab407debdcd8f4b`. The implementation
+authorization has been exercised, the bounded foundation is implemented on `main`,
+and its implementation review is complete. No Execution Attempt, Queue Envelope,
+execution, monitoring, completion, retry, scheduling, orchestration, provider/model,
+API, migration, durable distributed persistence, or other downstream implementation
 exists.
 
 ---
@@ -98,6 +100,9 @@ exists.
 - ✅ v0.10A Implementation Review Gate
 - ✅ v0.10A squash merge through PR #26
 - ✅ ADR 0012 Architecture Review Gate
+- ✅ v0.10B Implementation Review Gate with non-blocking documentation notes
+- ✅ v0.10B CI
+- ✅ v0.10B squash merge through PR #30
 
 These milestones are complete and considered part of the repository baseline.
 
@@ -118,6 +123,7 @@ These milestones are complete and considered part of the repository baseline.
 | v0.9A Implementation Review Gate | PASS |
 | v0.9B Implementation Review Gate | PASS |
 | v0.10A Implementation Review Gate | PASS |
+| v0.10B Implementation Review Gate | PASS WITH NON-BLOCKING NOTES |
 
 ---
 
@@ -172,15 +178,16 @@ through PR #23.
 This foundation passed its Implementation Review Gate and CI and was squash-merged
 through PR #26.
 
-## Effective Work Claim Foundation Implementation Authorization
+## Implemented Work Claim Foundation
 
 ADR 0012 is the sole architectural basis for this authorization and remains Proposed.
 ADRs 0007–0011 remain controlling. ADR 0012's Architecture Review Gate passed, and
 the separate implementation authorization package passed its Governance Review Gate
 and CI before its squash merge through PR #28. ADR 0012 itself was not modified.
 
-Because PR #28 merged into `main`, implementation authorization is now effective and
-limited to:
+Because PR #28 merged into `main`, implementation authorization became effective and
+remained limited to the following scope. PR #30 exercised that authorization and
+successfully merged the bounded implementation:
 
 - immutable Work Claim artifacts, including lineage events and records;
 - canonical UTF-8 serialization, deterministic identities, and canonical digests;
@@ -263,7 +270,7 @@ Same-scope integrity failures remain explicit. Claimant evidence is not substitu
 across organization or workload scope, and a scope-safe lookup failure publishes no
 accepted state.
 
-The candidate explicitly excludes Execution Attempt; execution; worker invocation;
+The implementation explicitly excludes Execution Attempt; execution; worker invocation;
 monitoring; completion; retries; Dispatch, Worker Selection, Worker Readiness,
 Execution Lease, Authorization Checkpoint, or Worker Identity semantic changes;
 authentication-system expansion; Queue Envelope; queue publication or consumption;
@@ -280,7 +287,7 @@ absent-versus-foreign non-disclosure; and downstream exclusions. Tests must not
 require attempts, queues, execution, monitoring, completion, retry, orchestration,
 or external integrations.
 
-The current implementation candidate supplies only this process-local foundation:
+The merged implementation supplies only this process-local foundation:
 frozen public inputs and lineage events; canonical UTF-8 content; deterministic
 lineage/event identities and SHA-256 digests; retained Dispatch and claimant evidence
 verification; one registered versioned claim policy; owner-derived generation and
@@ -324,9 +331,9 @@ execution behavior, or external effect.
 | Execution Request tests | 34 passed |
 | Execution Plan tests | 35 passed |
 | Dispatch Decision tests | 51 passed |
-| Work Claim tests | 33 passed |
-| Runtime tests | 180 passed |
-| Full test suite | 341 passed |
+| Work Claim tests | 34 passed |
+| Runtime tests | 181 passed |
+| Full test suite | 342 passed |
 | Python compilation | PASS |
 | CI | PASS |
 | `git diff --check` | PASS |
@@ -349,7 +356,7 @@ execution behavior, or external effect.
 | Task Submission | Not Started |
 | Dispatch | Foundation complete |
 | Scheduling | Deferred |
-| Claims & Leases | Work Claim foundation candidate in Draft PR review; lease changes deferred |
+| Claims & Leases | Work Claim foundation complete; lease changes deferred |
 | Worker Execution | Not Started |
 | Retry Handling | Deferred |
 | Orchestration | Deferred |
@@ -392,7 +399,7 @@ Deferred capabilities require future planning and, where applicable, architectur
 - The completed v0.10A foundation records Dispatch approval or denial only. It
   provides no Work Claim, queue transport, execution path, external effect, or
   end-to-end prototype.
-- The unmerged v0.10B candidate is limited to the authorized immutable Work Claim
+- The merged v0.10B implementation is limited to the authorized immutable Work Claim
   foundation. It
   grants no Execution Attempt, execution, monitoring, completion, retry, scheduling,
   orchestration, provider, API, migration, durable-persistence, or external-effect
@@ -422,11 +429,11 @@ Deferred capabilities require future planning and, where applicable, architectur
 - The v0.10B implementation authorization package passed its Governance Review Gate
   and CI and was squash-merged through PR #28 at
   `6d8e22a1e226198b7df8e3ac846ef2672ede29de`; authorization is now effective.
-- The Work Claim implementation candidate exists on its feature branch and Draft PR,
-  but no Work Claim runtime code has been merged into `main` and v0.10B is not
-  complete.
+- The Work Claim Foundation passed its Implementation Review Gate with non-blocking
+  documentation notes and CI, then was squash-merged through PR #30 at
+  `df6cc09edbd2adae871b75aabab407debdcd8f4b`; v0.10B is implemented on `main`.
 - Authorization is limited to the exact immutable Work Claim foundation slice above.
-  The candidate requires a full Implementation Review Gate, CI, and merge review.
+  PR #30 exercised that authorization without broadening it.
 - Material deviation requires an amended or new ADR, another Architecture Review
   Gate where applicable, and separate implementation authorization.
 - Execution Attempt and every later runtime layer remain unauthorized.
