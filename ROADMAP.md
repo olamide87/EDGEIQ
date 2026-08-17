@@ -388,13 +388,21 @@ findings. PR #32 was squash-merged at
 `e39ab7ad9d308a8c44f8a47d54653f46e9c70061`; ADR 0013 itself is unchanged by this
 package, and its architecture merge granted no implementation authority.
 
+ADRs 0007–0012 remain controlling for their existing semantic owners. PR #33 does
+not amend or supersede them, and ADR 0013 adds only the Execution Lease
+implementation-authorization boundary. This package transfers, broadens, and narrows
+no existing owner. Authorization Checkpoint, Worker Readiness, Worker Selection,
+Dispatch Decision, and Work Claim retain their ownership. Execution Attempt remains
+future and unauthorized; Retry, Monitoring, and Completion ownership remains
+unchanged.
+
 This documentation PR is a Draft, unmerged implementation-authorization candidate.
 Execution Lease implementation has not started, no Execution Lease runtime
-implementation exists, and implementation is **not currently authorized**. Opening
-the PR, CI PASS, Governance Review Gate PASS, Ready-for-Review status, or a governance
-comment does not authorize implementation. Authorization becomes effective only if
-and when this authorization PR merges into `main`. Until merge, Execution Lease
-implementation remains prohibited.
+implementation exists, and implementation is **not currently authorized**. Branch
+creation, opening the PR, CI PASS, Governance Review Gate PASS, Ready-for-Review
+status, or a governance comment does not authorize implementation. Authorization
+becomes effective only if and when PR #33 merges into `main`. Until merge, Execution
+Lease implementation remains prohibited and no runtime implementation may begin.
 
 If merged, the authorization is limited to:
 
@@ -447,6 +455,37 @@ If merged, the authorization is limited to:
   absent/foreign non-disclosure; same-scope integrity visibility; immutable audit
   provenance; and no credentials or secrets in canonical evidence; and
 - bounded implementation documentation and focused foundation tests only.
+
+Possession of an Execution Lease performs no action and does not imply generic
+execution authority. Permissions remain exact and bounded: `OFFER_WORK_ITEM` permits
+only Dispatch evaluation, while `INITIATE_WORK_ITEM_EXECUTION` permits only the
+separately owned downstream admission or effect boundary as governed later. Neither
+permission by itself authorizes provider invocation, execution, completion, retry,
+monitoring, or orchestration. No additional permission semantics are introduced.
+
+An equivalent idempotent retry converges to the exact previously committed canonical
+lease event. It appends no duplicate event and changes no lineage version,
+generation, pointer/index, or idempotency state beyond the original committed entry.
+Conflicting idempotency reuse fails explicitly, publishes nothing, appends no event,
+and preserves prior state.
+
+Expected-version CAS permits exactly one successor for one expected lineage version.
+A stale writer appends nothing and must reload and recompute from newly committed
+authoritative history. Last-write-wins, timestamp arbitration, and hidden cross-owner
+transactions remain prohibited.
+
+Expiry and applicability derive only from retained semantic-time evidence. No
+background timer or scheduler may create authoritative expiry truth, replay never
+consults wall-clock `now`, and `recorded_at` remains diagnostic only. Mutable current
+lease pointers, projections, and caches are convenience views only; none may replace
+immutable lineage history or an exact generation/history boundary as authority.
+
+Reconstruction and replay use only retained immutable evidence and exact versions
+and digests. They must not consult mutable current Authorization Checkpoint or
+Execution Lease projections as authority, queues, live workers, providers,
+Monitoring, Completion, external systems, current wall-clock time, or ambient mutable
+configuration not retained in canonical evidence. Any divergence fails closed
+without mutation.
 
 Focused tests may cover canonical lineage identity; generation exclusion from stream
 identity; owner assignment and monotonicity; lineage-version separation;
