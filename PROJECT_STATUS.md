@@ -2,9 +2,9 @@
 
 Document Status: Current
 
-Applies To: `main @ df6cc09edbd2adae871b75aabab407debdcd8f4b`
+Applies To: `main @ e39ab7ad9d308a8c44f8a47d54653f46e9c70061`
 
-Last Updated: 2026-08-10
+Last Updated: 2026-08-17
 
 Maintainers: EDGEIQ Maintainers
 
@@ -79,6 +79,14 @@ execution, monitoring, completion, retry, scheduling, orchestration, provider/mo
 API, migration, durable distributed persistence, or other downstream implementation
 exists.
 
+ADR 0013 — Execution Lease Foundation was squash-merged through PR #32 at
+`e39ab7ad9d308a8c44f8a47d54653f46e9c70061`. ADR 0013 remains Proposed, and its
+Architecture Review Gate passed with no blocking findings. No Execution Lease
+runtime implementation exists and implementation has not started. The authorization
+package described below is only a Draft, unmerged implementation-authorization
+candidate. Execution Lease implementation remains prohibited until that package is
+merged into `main`.
+
 ---
 
 # Completed Milestones
@@ -118,6 +126,7 @@ These milestones are complete and considered part of the repository baseline.
 | ADR 0010 — Runtime State Machine and Transition Ownership | Proposed |
 | ADR 0011 — Dispatch Decision Foundation | Proposed |
 | ADR 0012 — Work Claim Foundation | Proposed |
+| ADR 0013 — Execution Lease Foundation | Proposed; Architecture Review Gate PASS |
 | Runtime Architecture | Baseline Established |
 | Architecture Review Gate | PASS |
 | v0.9A Implementation Review Gate | PASS |
@@ -297,6 +306,128 @@ copy-on-write publication; deterministic reconstruction; and scope-safe in-memor
 evidence/history access. It adds no API, migration, durable adapter, queue, attempt,
 execution behavior, or external effect.
 
+## Execution Lease Foundation Implementation Authorization Candidate
+
+ADR 0013 is the sole architectural basis for this candidate authorization and
+remains Proposed. Its Architecture Review Gate is **PASS**. PR #32 was squash-merged
+at `e39ab7ad9d308a8c44f8a47d54653f46e9c70061`; that architecture merge granted no
+implementation authority.
+
+This documentation PR is an implementation-authorization candidate only. Execution
+Lease implementation is **not currently authorized**. Opening this PR, CI passing, a
+Governance Review Gate PASS, marking the PR Ready for Review, or adding a governance
+comment does not authorize implementation. Authorization becomes effective only if
+and when this authorization PR merges into `main`. Until that merge, implementation
+remains prohibited. Execution Lease implementation has not started, and no Execution
+Lease runtime implementation exists.
+
+If this authorization package merges, it authorizes only the immutable Execution
+Lease Foundation defined by ADR 0013:
+
+- immutable lease domain evidence: lineage identity, lease-generation identity,
+  lifecycle records or events, and append-only history;
+- canonical UTF-8 serialization with deterministic ordering, canonical digests,
+  deterministic namespaced identities, and strict supported schema, component,
+  serialization, and configuration versions;
+- one authoritative lineage keyed exactly by `organization_id`,
+  `workload_context_id`, `plan_id`, `work_item_id`, and `permission_family`;
+- owner-assigned monotonic generation: the first valid grant receives the initial
+  generation, generation is immutable, and callers and timestamps cannot select it;
+- a lineage version that advances exactly once per successful lifecycle append and
+  remains distinct from generation, lease identity, and event identity;
+- the closed, unique, canonical, versioned permission vocabulary
+  `OFFER_WORK_ITEM` and `INITIATE_WORK_ITEM_EXECUTION`, bounded by retained upstream
+  authority, with unknown permissions failing closed;
+- a narrow retained-evidence port that resolves and verifies exact affirmative
+  Authorization Checkpoint identity, digest, organization/workload and
+  principal/authority-subject scope, plan/work-item scope, permission ceiling,
+  policy identity/version/digest, semantic evaluation-time evidence, immutable
+  history boundary, and exact schema/component/serialization/configuration versions;
+- immutable grant evidence that narrows upstream scope and permission, assigns the
+  owner-controlled generation, retains effective and expiry boundaries, and creates
+  no downstream artifact or effect;
+- immutable renewal evidence within the same generation using fresh affirmative
+  Authorization Checkpoint evidence, the same organization/workload/work lineage,
+  no permission broadening, expected-version CAS, and scoped idempotency;
+- immutable revocation evidence only when exact retained causality satisfies ADR
+  0013; a narrow port may represent already-authorized revocation evidence, but the
+  implementation cannot invent a revocation-authority model;
+- immutable supersession within one lineage while retaining every earlier generation
+  and requiring downstream consumers to use exact generation and history boundaries;
+- deterministic applicability using the half-open interval
+  `effective_at <= evaluation_at < expires_at`, retained revocation boundaries, no
+  replay dependence on current wall-clock time, and non-semantic `recorded_at`;
+- owner-scoped idempotency over the exact canonical organization/workload,
+  operation, lineage, Authorization Checkpoint evidence, work scope, permissions,
+  generation boundary, effective/expiry boundary, revocation/supersession causality,
+  policy/version/digest, semantic-time/evidence boundary,
+  schema/component/serialization/configuration versions, and caller key;
+- expected-version CAS for every lifecycle append, including grant, renewal,
+  revocation, supersession, stale-writer, equivalent-retry, and conflicting-reuse
+  races, with no timestamp arbitration, last-write-wins, or hidden cross-owner
+  transaction;
+- rollback-safe owner-scoped atomic publication prepared before commit and limited
+  to one immutable lease event, lineage history, lease ID/index, owner-derived
+  pointer/index, generation/version state, and scoped idempotency entry, with no
+  partial visibility and preservation of prior accepted state on failure;
+- deterministic fail-closed reconstruction through an explicit lineage version from
+  exact Authorization Checkpoint evidence, lease policy/version/digest, scope,
+  permissions, generation assignments, lifecycle and semantic-time evidence,
+  versions, canonical inputs, identities, and digests;
+- reconstruction checks for contiguous versions, monotonic owner-assigned
+  generations, authorization causality, permission narrowing, legal transitions,
+  revocation/supersession ordering, deterministic identity/content/digest, and
+  derived applicability, without mutation;
+- organization-scoped reads, writes, and idempotency; workload-scoped lineages;
+  exact authorization-scope matching and permission narrowing; scope-aware evidence
+  lookup; absent/foreign evidence non-disclosure; same-scope integrity visibility;
+  immutable provenance and audit reconstruction; and no credentials or secrets in
+  canonical lease evidence; and
+- bounded implementation-local documentation and focused unit/foundation tests for
+  this exact slice.
+
+Focused tests may prove canonical lineage identity; generation exclusion from stream
+identity; owner-assigned first and monotonic generations; separation of lineage
+version, generation, lease identity, and event identity; deterministic lease
+identity; permission sorting, uniqueness, and unknown-permission rejection;
+authorization scope narrowing and permission ceilings; valid and invalid grants;
+valid renewal, fresh-authorization requirements, and illegal authority expansion;
+immutable revocation and supersession; half-open effective/expiry behavior including
+expiry equality; retained revocation boundaries; equivalent and conflicting
+idempotency; stale versions; concurrent grants and renewals; renewal/revocation
+races; rollback on empty and prior state; append-only history; immutable returned
+evidence; deterministic reconstruction; lineage gaps; illegal generations;
+authorization-evidence and digest divergence; organization/workload isolation;
+absent-versus-foreign non-disclosure; and absence of downstream behavior. These tests
+must not require downstream runtime owners.
+
+This candidate authorization explicitly excludes:
+
+- Authorization Checkpoint changes beyond the narrow retained-evidence port;
+- authentication or identity-subsystem changes;
+- Execution Plan, Worker Readiness, Worker Selection, Dispatch Decision, or Work
+  Claim semantic changes;
+- Execution Attempt or Execution Effect/Runtime;
+- provider or model selection or invocation;
+- queue publication or consumption and Queue Envelope;
+- execution, Monitoring, Completion, Retry, scheduling, or orchestration;
+- public APIs, routes, controllers, migrations, or background workers;
+- external effects, durable distributed persistence, end-to-end runtime execution,
+  or any later milestone.
+
+The concrete revocation-directive and authorized-issuer contract, maximum duration
+and renewal-window policy, precise post-revocation later-generation policy,
+attempt-admission versus effect-initiation revocation race, and concrete
+persistence/API/encoding choices remain non-blocking future governance items. A
+future implementation PR must not invent their semantics. It may introduce an
+abstraction only where ADR 0013 already fixes ownership. Any need for externally
+meaningful authority, security, lifecycle, or concurrency semantics not established
+by ADR 0013 must stop and return to governance.
+
+A future implementation PR must pass a complete Implementation Review Gate, CI, and
+merge review. Material deviation requires amended or new architecture governance.
+No later runtime layer is authorized by this candidate.
+
 ## Replay & Audit
 
 - Replay metadata
@@ -434,6 +565,13 @@ Deferred capabilities require future planning and, where applicable, architectur
   `df6cc09edbd2adae871b75aabab407debdcd8f4b`; v0.10B is implemented on `main`.
 - Authorization is limited to the exact immutable Work Claim foundation slice above.
   PR #30 exercised that authorization without broadening it.
+- ADR 0013 was squash-merged through PR #32 at
+  `e39ab7ad9d308a8c44f8a47d54653f46e9c70061`, remains Proposed, and its
+  Architecture Review Gate passed with no blocking findings.
+- The Execution Lease implementation-authorization package is Draft and unmerged.
+  Its opening, CI, review, Ready status, and governance comments do not authorize
+  implementation. Authorization becomes effective only if the package merges into
+  `main`; until then, Execution Lease implementation remains prohibited.
 - Material deviation requires an amended or new ADR, another Architecture Review
   Gate where applicable, and separate implementation authorization.
 - Execution Attempt and every later runtime layer remain unauthorized.

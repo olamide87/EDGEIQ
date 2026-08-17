@@ -21,6 +21,7 @@ complexity is earned through reproducibility and held-out evidence.
 | v0.9B | Immutable Execution Plan Foundation | Complete |
 | v0.10A | Dispatch Decision Foundation | Complete |
 | v0.10B | Work Claim Foundation | Complete |
+| — | Execution Lease Foundation authorization | Draft candidate; ineffective until merge |
 | v1.0 | Public Beta | Planned |
 
 ## v0.5 promotion sequence
@@ -379,12 +380,117 @@ where applicable, and separate implementation authorization. This implementation
 make ADR 0012 Accepted, authorize a later milestone, establish an end-to-end runtime
 path or prototype, or grant execution authority.
 
+### Execution Lease Foundation — Implementation Authorization Candidate
+
+ADR 0013 is the sole architectural basis for this candidate authorization and
+remains Proposed. Its Architecture Review Gate is **PASS** with no blocking
+findings. PR #32 was squash-merged at
+`e39ab7ad9d308a8c44f8a47d54653f46e9c70061`; ADR 0013 itself is unchanged by this
+package, and its architecture merge granted no implementation authority.
+
+This documentation PR is a Draft, unmerged implementation-authorization candidate.
+Execution Lease implementation has not started, no Execution Lease runtime
+implementation exists, and implementation is **not currently authorized**. Opening
+the PR, CI PASS, Governance Review Gate PASS, Ready-for-Review status, or a governance
+comment does not authorize implementation. Authorization becomes effective only if
+and when this authorization PR merges into `main`. Until merge, Execution Lease
+implementation remains prohibited.
+
+If merged, the authorization is limited to:
+
+- immutable lease lineage, lease-generation identity, lifecycle records/events, and
+  append-only history;
+- canonical UTF-8 serialization, deterministic ordering, canonical digests,
+  deterministic namespaced identities, and strict supported versions;
+- one lineage keyed exactly by `organization_id`, `workload_context_id`, `plan_id`,
+  `work_item_id`, and `permission_family`;
+- owner-assigned monotonic immutable generation that is never caller-selected,
+  timestamp-derived, or part of stream identity;
+- lineage version advancing exactly once per successful append and remaining
+  distinct from generation, lease identity, and event identity;
+- the closed, canonical, unique, versioned permissions `OFFER_WORK_ITEM` and
+  `INITIATE_WORK_ITEM_EXECUTION`, no broader than upstream authority, with unknown
+  permissions failing closed;
+- verification-only resolution of exact retained affirmative Authorization
+  Checkpoint identity/digest, organization/workload and authority-subject scope,
+  plan/work-item scope, permission ceiling, policy identity/version/digest, semantic
+  evaluation-time evidence, history boundary, and exact versions;
+- immutable grants that narrow authority, assign generation, retain effective/expiry
+  boundaries, and create no downstream artifact or effect;
+- same-generation renewal using fresh affirmative authorization evidence, unchanged
+  organization/workload/work lineage, no permission broadening, CAS, idempotency,
+  and preserved prior evidence;
+- immutable revocation only from retained causality satisfying ADR 0013, with at
+  most a narrow already-authorized-evidence port and no invented revocation authority;
+- immutable supersession preserving earlier generations and exact consumed history
+  boundaries;
+- deterministic half-open applicability
+  `effective_at <= evaluation_at < expires_at`, retained revocation boundaries, no
+  current-time replay input, and non-semantic `recorded_at`;
+- owner-scoped idempotency binding the exact canonical organization/workload,
+  operation, lineage, authorization evidence, work scope, permission, generation,
+  time, lifecycle causality, policy, version, evidence-boundary, and caller-key
+  inputs; equivalent retries converge and conflicts fail without mutation;
+- expected-version CAS for all grant, renewal, revocation, supersession, stale-writer,
+  and retry races, without timestamps, last-write-wins, or cross-owner transactions;
+- rollback-safe owner-scoped atomic publication prepared before commit and limited to
+  lease event/history, IDs/indexes, derived pointers, generation/version state, and
+  idempotency, exposing no partial state on failure;
+- deterministic fail-closed reconstruction through an explicit lineage version from
+  exact authorization, policy, scope, permission, generation, lifecycle, semantic
+  time, version, canonical identity/content, and digest evidence;
+- reconstruction verification of contiguous versions, monotonic generation,
+  causality, permission narrowing, lifecycle legality, ordering, identity/content/
+  digest determinism, and derived applicability, with no replay mutation;
+- organization-scoped reads, writes, and idempotency; workload-scoped lineages;
+  scope-aware evidence lookup; authorization matching and permission narrowing;
+  absent/foreign non-disclosure; same-scope integrity visibility; immutable audit
+  provenance; and no credentials or secrets in canonical evidence; and
+- bounded implementation documentation and focused foundation tests only.
+
+Focused tests may cover canonical lineage identity; generation exclusion from stream
+identity; owner assignment and monotonicity; lineage-version separation;
+deterministic identities; permission ordering, uniqueness, and rejection; authority
+narrowing and ceilings; valid/invalid grants; fresh-evidence renewal and prohibited
+expansion; immutable revocation/supersession; half-open expiry equality and retained
+revocation boundaries; idempotency; stale versions; grant, renewal, and
+renewal/revocation races; rollback with empty and prior state; append-only and
+immutable evidence; deterministic reconstruction; lineage gaps, illegal generation,
+authorization and digest divergence; isolation and foreign non-disclosure; and no
+downstream behavior. Tests cannot require downstream runtime owners.
+
+This authorization does **not** include Authorization Checkpoint changes beyond a
+narrow retained-evidence port; authentication or identity changes; Execution Plan,
+Worker Readiness, Worker Selection, Dispatch Decision, or Work Claim semantic
+changes; Execution Attempt; Execution Effect/Runtime; providers or models; provider
+or model selection or invocation; queue publication or consumption; Queue Envelope;
+execution; Monitoring; Completion; Retry; scheduling; orchestration; public APIs;
+routes; controllers; migrations; background workers; external effects; durable
+distributed persistence; end-to-end execution; or any later milestone.
+
+The revocation-directive and authorized-issuer contract, maximum duration and
+renewal-window policy, post-revocation later-generation policy,
+attempt-admission/effect-initiation revocation race, and concrete
+persistence/API/encoding choices remain non-blocking future governance items. An
+implementation PR must not invent these semantics and may add only abstractions
+where ADR 0013 already fixes ownership. Any need for new externally meaningful
+authority, security, lifecycle, or concurrency semantics requires work to stop and
+return to governance.
+
+A future implementation PR requires a complete Implementation Review Gate, CI, and
+merge review. Material deviation requires new or amended architecture governance.
+No Execution Attempt, Execution Effect/Runtime, or later runtime layer is authorized.
+
 ## Roadmap governance
 
 `ROADMAP.md` records planned sequencing and acceptance targets. The Work Claim
 authorization became effective only when its authorization package merged through PR
 #28. The roadmap does not approve architecture, supersede ADRs, or make future
 authorization effective through publication, CI, review, comments, or Ready status.
+
+The Execution Lease authorization candidate likewise remains ineffective until its
+own authorization PR merges into `main`. ADR 0013 remains Proposed, and no runtime
+implementation may begin from this roadmap entry alone.
 
 New architectural capability requires an accepted ADR and a successful Architecture
 Review Gate. Implementation begins only after a separate explicit authorization
