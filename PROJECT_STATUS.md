@@ -82,10 +82,11 @@ exists.
 ADR 0013 — Execution Lease Foundation was squash-merged through PR #32 at
 `e39ab7ad9d308a8c44f8a47d54653f46e9c70061`. ADR 0013 remains Proposed, and its
 Architecture Review Gate passed with no blocking findings. No Execution Lease
-runtime implementation exists and implementation has not started. The authorization
-package described below is only a Draft, unmerged implementation-authorization
-candidate. Execution Lease implementation remains prohibited until that package is
-merged into `main`.
+runtime implementation exists and implementation has not started. The documentation-
+only implementation-authorization package was squash-merged through PR #33, reviewed
+at `33acfe5c55cafd16805aca2481c211c47108cddf`, into `main` at
+`543a5d787c9fcd8bda4c1b67e96c69aab3f379c2`. Its Governance Review Gate and CI
+passed, so the bounded authorization described below is now effective.
 
 ---
 
@@ -306,12 +307,17 @@ copy-on-write publication; deterministic reconstruction; and scope-safe in-memor
 evidence/history access. It adds no API, migration, durable adapter, queue, attempt,
 execution behavior, or external effect.
 
-## Execution Lease Foundation Implementation Authorization Candidate
+## Effective Execution Lease Foundation Implementation Authorization
 
-ADR 0013 is the sole architectural basis for this candidate authorization and
+ADR 0013 is the sole architectural basis for this effective authorization and
 remains Proposed. Its Architecture Review Gate is **PASS**. PR #32 was squash-merged
 at `e39ab7ad9d308a8c44f8a47d54653f46e9c70061`; that architecture merge granted no
 implementation authority.
+
+PR #33 was reviewed at `33acfe5c55cafd16805aca2481c211c47108cddf` and
+squash-merged into `main` at `543a5d787c9fcd8bda4c1b67e96c69aab3f379c2`.
+Governance Review Gate: **PASS**. CI: **PASS**. The merge made the bounded Execution
+Lease implementation authorization effective. ADR 0013 itself remains unchanged.
 
 ADRs 0007–0012 remain controlling for their existing semantic owners. PR #33 does
 not amend or supersede them, and ADR 0013 adds only the Execution Lease
@@ -321,17 +327,17 @@ Dispatch Decision, and Work Claim retain their ownership. Execution Attempt rema
 future and unauthorized; Retry, Monitoring, and Completion ownership remains
 unchanged.
 
-This documentation PR is an implementation-authorization candidate only. Execution
-Lease implementation is **not currently authorized**. Branch creation, opening this
-PR, CI passing, a Governance Review Gate PASS, marking the PR Ready for Review, or
-adding a governance comment does not authorize implementation. Authorization becomes
-effective only if and when PR #33 merges into `main`. Until that merge, Execution
-Lease implementation remains prohibited and no runtime implementation may begin.
-Execution Lease implementation has not started, and no Execution Lease runtime
-implementation exists.
+Before merge, branch creation, opening PR #33, CI passing, a Governance Review Gate
+PASS, marking the PR Ready for Review, and governance comments did not authorize
+implementation. PR #33's merge into `main` satisfied the sole effective condition;
+authorization is no longer pending or ineffective. Execution Lease implementation
+has **not** started, no Execution Lease runtime implementation exists, and this
+documentation reconciliation implements no runtime behavior. A future implementation
+PR is still required and must pass a complete Implementation Review Gate, CI, and
+merge review.
 
-If this authorization package merges, it authorizes only the immutable Execution
-Lease Foundation defined by ADR 0013:
+The effective authorization permits only the immutable Execution Lease Foundation
+defined by ADR 0013:
 
 - immutable lease domain evidence: lineage identity, lease-generation identity,
   lifecycle records or events, and append-only history;
@@ -441,7 +447,7 @@ authorization-evidence and digest divergence; organization/workload isolation;
 absent-versus-foreign non-disclosure; and absence of downstream behavior. These tests
 must not require downstream runtime owners.
 
-This candidate authorization explicitly excludes:
+This effective authorization explicitly excludes:
 
 - Authorization Checkpoint changes beyond the narrow retained-evidence port;
 - authentication or identity-subsystem changes;
@@ -608,10 +614,12 @@ Deferred capabilities require future planning and, where applicable, architectur
 - ADR 0013 was squash-merged through PR #32 at
   `e39ab7ad9d308a8c44f8a47d54653f46e9c70061`, remains Proposed, and its
   Architecture Review Gate passed with no blocking findings.
-- The Execution Lease implementation-authorization package is Draft and unmerged.
-  Its opening, CI, review, Ready status, and governance comments do not authorize
-  implementation. Authorization becomes effective only if the package merges into
-  `main`; until then, Execution Lease implementation remains prohibited.
+- The Execution Lease implementation-authorization package was reviewed at
+  `33acfe5c55cafd16805aca2481c211c47108cddf`, passed its Governance Review Gate and
+  CI, and was squash-merged through PR #33 at
+  `543a5d787c9fcd8bda4c1b67e96c69aab3f379c2`; its bounded authorization is now
+  effective. Execution Lease implementation has not started, and a future
+  implementation PR must pass a complete Implementation Review Gate.
 - Material deviation requires an amended or new ADR, another Architecture Review
   Gate where applicable, and separate implementation authorization.
 - Execution Attempt and every later runtime layer remain unauthorized.

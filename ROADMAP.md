@@ -21,7 +21,7 @@ complexity is earned through reproducibility and held-out evidence.
 | v0.9B | Immutable Execution Plan Foundation | Complete |
 | v0.10A | Dispatch Decision Foundation | Complete |
 | v0.10B | Work Claim Foundation | Complete |
-| — | Execution Lease Foundation authorization | Draft candidate; ineffective until merge |
+| — | Execution Lease Foundation authorization | Effective; implementation not started |
 | v1.0 | Public Beta | Planned |
 
 ## v0.5 promotion sequence
@@ -380,13 +380,18 @@ where applicable, and separate implementation authorization. This implementation
 make ADR 0012 Accepted, authorize a later milestone, establish an end-to-end runtime
 path or prototype, or grant execution authority.
 
-### Execution Lease Foundation — Implementation Authorization Candidate
+### Execution Lease Foundation — Effective Implementation Authorization
 
-ADR 0013 is the sole architectural basis for this candidate authorization and
+ADR 0013 is the sole architectural basis for this effective authorization and
 remains Proposed. Its Architecture Review Gate is **PASS** with no blocking
 findings. PR #32 was squash-merged at
 `e39ab7ad9d308a8c44f8a47d54653f46e9c70061`; ADR 0013 itself is unchanged by this
 package, and its architecture merge granted no implementation authority.
+
+PR #33 was reviewed at `33acfe5c55cafd16805aca2481c211c47108cddf` and
+squash-merged into `main` at `543a5d787c9fcd8bda4c1b67e96c69aab3f379c2`.
+Governance Review Gate: **PASS**. CI: **PASS**. The merge made the bounded Execution
+Lease implementation authorization effective. ADR 0013 itself remains unchanged.
 
 ADRs 0007–0012 remain controlling for their existing semantic owners. PR #33 does
 not amend or supersede them, and ADR 0013 adds only the Execution Lease
@@ -396,15 +401,15 @@ Dispatch Decision, and Work Claim retain their ownership. Execution Attempt rema
 future and unauthorized; Retry, Monitoring, and Completion ownership remains
 unchanged.
 
-This documentation PR is a Draft, unmerged implementation-authorization candidate.
-Execution Lease implementation has not started, no Execution Lease runtime
-implementation exists, and implementation is **not currently authorized**. Branch
-creation, opening the PR, CI PASS, Governance Review Gate PASS, Ready-for-Review
-status, or a governance comment does not authorize implementation. Authorization
-becomes effective only if and when PR #33 merges into `main`. Until merge, Execution
-Lease implementation remains prohibited and no runtime implementation may begin.
+Before merge, branch creation, opening PR #33, CI PASS, Governance Review Gate PASS,
+Ready-for-Review status, and governance comments did not authorize implementation.
+PR #33's merge into `main` satisfied the sole effective condition; authorization is
+no longer pending or ineffective. Execution Lease implementation has **not** started,
+no Execution Lease runtime implementation exists, and this documentation
+reconciliation implements no runtime behavior. A future implementation PR remains
+required and must pass a complete Implementation Review Gate, CI, and merge review.
 
-If merged, the authorization is limited to:
+The effective authorization is limited to:
 
 - immutable lease lineage, lease-generation identity, lifecycle records/events, and
   append-only history;
@@ -527,9 +532,11 @@ authorization became effective only when its authorization package merged throug
 #28. The roadmap does not approve architecture, supersede ADRs, or make future
 authorization effective through publication, CI, review, comments, or Ready status.
 
-The Execution Lease authorization candidate likewise remains ineffective until its
-own authorization PR merges into `main`. ADR 0013 remains Proposed, and no runtime
-implementation may begin from this roadmap entry alone.
+The Execution Lease authorization became effective only when PR #33 merged into
+`main` at `543a5d787c9fcd8bda4c1b67e96c69aab3f379c2`. Its earlier branch, PR, CI,
+review, Ready, and governance-comment states were non-authorizing. ADR 0013 remains
+Proposed and unchanged. Implementation has not started and still requires a separate
+implementation PR and complete Implementation Review Gate.
 
 New architectural capability requires an accepted ADR and a successful Architecture
 Review Gate. Implementation begins only after a separate explicit authorization
