@@ -404,10 +404,10 @@ unchanged.
 Before merge, branch creation, opening PR #33, CI PASS, Governance Review Gate PASS,
 Ready-for-Review status, and governance comments did not authorize implementation.
 PR #33's merge into `main` satisfied the sole effective condition; authorization is
-no longer pending or ineffective. Execution Lease implementation has **not** started,
-no Execution Lease runtime implementation exists, and this documentation
-reconciliation implements no runtime behavior. A future implementation PR remains
-required and must pass a complete Implementation Review Gate, CI, and merge review.
+no longer pending or ineffective. The `feature/execution-lease-foundation` branch now
+contains a bounded implementation candidate intended only for a Draft PR. It is not
+merged or part of `main`; a complete Implementation Review Gate, CI, and merge review
+remain required.
 
 The effective authorization is limited to:
 
@@ -513,6 +513,16 @@ routes; controllers; migrations; background workers; external effects; durable
 distributed persistence; end-to-end execution; or any later milestone.
 
 The revocation-directive and authorized-issuer contract, maximum duration and
+The implementation candidate supplies only process-local immutable lease lineage
+events; canonical UTF-8 serialization; deterministic lineage, lease, event, and
+idempotency identities and digests; owner-assigned generation; distinct lineage
+version; bounded permissions; verification-only retained Authorization Checkpoint
+evidence; grant, renewal, retained-directive revocation, and active-generation
+supersession; retained-time applicability; scoped idempotency; expected-version CAS;
+rollback-safe copy-on-write publication; deterministic reconstruction; and
+organization/workload isolation. It creates no downstream artifact or effect.
+
+The concrete revocation-directive and authorized-issuer contract, maximum duration and
 renewal-window policy, post-revocation later-generation policy,
 attempt-admission/effect-initiation revocation race, and concrete
 persistence/API/encoding choices remain non-blocking future governance items. An
@@ -521,9 +531,10 @@ where ADR 0013 already fixes ownership. Any need for new externally meaningful
 authority, security, lifecycle, or concurrency semantics requires work to stop and
 return to governance.
 
-A future implementation PR requires a complete Implementation Review Gate, CI, and
-merge review. Material deviation requires new or amended architecture governance.
-No Execution Attempt, Execution Effect/Runtime, or later runtime layer is authorized.
+This implementation candidate is not yet merged and requires a complete
+Implementation Review Gate, CI, and merge review. ADR 0013 remains Proposed. Material
+deviation requires new or amended architecture governance. No Execution Attempt,
+Execution Effect/Runtime, or later runtime layer is authorized.
 
 ## Roadmap governance
 

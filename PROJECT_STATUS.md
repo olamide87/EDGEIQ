@@ -81,12 +81,14 @@ exists.
 
 ADR 0013 — Execution Lease Foundation was squash-merged through PR #32 at
 `e39ab7ad9d308a8c44f8a47d54653f46e9c70061`. ADR 0013 remains Proposed, and its
-Architecture Review Gate passed with no blocking findings. No Execution Lease
-runtime implementation exists and implementation has not started. The documentation-
-only implementation-authorization package was squash-merged through PR #33, reviewed
+Architecture Review Gate passed with no blocking findings. The documentation-only
+implementation-authorization package was squash-merged through PR #33, reviewed
 at `33acfe5c55cafd16805aca2481c211c47108cddf`, into `main` at
 `543a5d787c9fcd8bda4c1b67e96c69aab3f379c2`. Its Governance Review Gate and CI
-passed, so the bounded authorization described below is now effective.
+passed, so the bounded authorization described below is now effective. The
+`feature/execution-lease-foundation` branch now contains an implementation candidate
+intended only for a Draft PR. It is not merged or part of `main`; a complete
+Implementation Review Gate, CI, and merge review remain required.
 
 ---
 
@@ -330,11 +332,11 @@ unchanged.
 Before merge, branch creation, opening PR #33, CI passing, a Governance Review Gate
 PASS, marking the PR Ready for Review, and governance comments did not authorize
 implementation. PR #33's merge into `main` satisfied the sole effective condition;
-authorization is no longer pending or ineffective. Execution Lease implementation
-has **not** started, no Execution Lease runtime implementation exists, and this
-documentation reconciliation implements no runtime behavior. A future implementation
-PR is still required and must pass a complete Implementation Review Gate, CI, and
-merge review.
+authorization is no longer pending or ineffective. The bounded
+`feature/execution-lease-foundation` implementation candidate is intended only for a
+Draft PR and is not merged or part of `main`. It must pass a complete Implementation
+Review Gate, CI, and merge review before the implementation becomes repository
+baseline.
 
 The effective authorization permits only the immutable Execution Lease Foundation
 defined by ADR 0013:
@@ -461,18 +463,28 @@ This effective authorization explicitly excludes:
 - external effects, durable distributed persistence, end-to-end runtime execution,
   or any later milestone.
 
+The implementation candidate supplies only process-local immutable lease lineage
+events; canonical UTF-8 serialization; deterministic lineage, lease, event, and
+idempotency identities and digests; owner-assigned generation; distinct lineage
+version; bounded permissions; verification-only retained Authorization Checkpoint
+evidence; grant, renewal, retained-directive revocation, and active-generation
+supersession; retained-time applicability; scoped idempotency; expected-version CAS;
+rollback-safe copy-on-write publication; deterministic reconstruction; and
+organization/workload isolation. It creates no downstream artifact or effect.
+
 The concrete revocation-directive and authorized-issuer contract, maximum duration
 and renewal-window policy, precise post-revocation later-generation policy,
 attempt-admission versus effect-initiation revocation race, and concrete
 persistence/API/encoding choices remain non-blocking future governance items. A
-future implementation PR must not invent their semantics. It may introduce an
+candidate implementation must not invent their semantics. It may introduce an
 abstraction only where ADR 0013 already fixes ownership. Any need for externally
 meaningful authority, security, lifecycle, or concurrency semantics not established
 by ADR 0013 must stop and return to governance.
 
-A future implementation PR must pass a complete Implementation Review Gate, CI, and
-merge review. Material deviation requires amended or new architecture governance.
-No later runtime layer is authorized by this candidate.
+This candidate is not yet merged and must pass a complete Implementation Review Gate,
+CI, and merge review. ADR 0013 remains Proposed. Material deviation requires amended
+or new architecture governance. No later runtime layer is authorized by this
+candidate.
 
 ## Replay & Audit
 
@@ -618,8 +630,9 @@ Deferred capabilities require future planning and, where applicable, architectur
   `33acfe5c55cafd16805aca2481c211c47108cddf`, passed its Governance Review Gate and
   CI, and was squash-merged through PR #33 at
   `543a5d787c9fcd8bda4c1b67e96c69aab3f379c2`; its bounded authorization is now
-  effective. Execution Lease implementation has not started, and a future
-  implementation PR must pass a complete Implementation Review Gate.
+  effective. The `feature/execution-lease-foundation` implementation candidate is
+  intended only for a Draft PR, is not merged, and must pass a complete Implementation
+  Review Gate, CI, and merge review.
 - Material deviation requires an amended or new ADR, another Architecture Review
   Gate where applicable, and separate implementation authorization.
 - Execution Attempt and every later runtime layer remain unauthorized.
