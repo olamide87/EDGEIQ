@@ -12,7 +12,7 @@ from app.runtime.execution_lease.domain import (
     LeaseEventType, LeaseOperation,
 )
 from app.runtime.execution_lease.evidence import (
-    RetainedAuthorizationEvidence, RetainedRevocationEvidence, ScopedEvidenceSource,
+    OpaqueRetainedRevocationEvidence, RetainedAuthorizationEvidence, ScopedEvidenceSource,
     authorization_source, require_evidence, revocation_source,
 )
 from app.runtime.execution_lease.policy import RegisteredExecutionLeasePolicy, policy_for
@@ -138,12 +138,12 @@ def _advance_state(state: LeaseDerivedState, event: ExecutionLeaseEvent) -> Leas
 
 
 class ExecutionLeaseService:
-    def __init__(self, *, authorizations: ScopedEvidenceSource[RetainedAuthorizationEvidence] | None = None, revocations: ScopedEvidenceSource[RetainedRevocationEvidence] | None = None, repository: InMemoryExecutionLeaseRepository | None = None) -> None:
+    def __init__(self, *, authorizations: ScopedEvidenceSource[RetainedAuthorizationEvidence] | None = None, revocations: ScopedEvidenceSource[OpaqueRetainedRevocationEvidence] | None = None, repository: InMemoryExecutionLeaseRepository | None = None) -> None:
         self.authorizations = authorizations or authorization_source()
         self.revocations = revocations or revocation_source()
         self.repository = repository or InMemoryExecutionLeaseRepository()
 
-    def _resolve(self, request: ExecutionLeaseRequest) -> tuple[RetainedAuthorizationEvidence | None, RetainedRevocationEvidence | None, RegisteredExecutionLeasePolicy]:
+    def _resolve(self, request: ExecutionLeaseRequest) -> tuple[RetainedAuthorizationEvidence | None, OpaqueRetainedRevocationEvidence | None, RegisteredExecutionLeasePolicy]:
         scope = {"organization_id": request.organization_id, "workload_context_id": request.workload_context_id}
         authorization = None
         revocation = None
@@ -171,6 +171,16 @@ class ExecutionLeaseService:
                 raise ExecutionLeaseInvalid("Revocation evidence scope does not match the lease lineage.")
             if revocation.effective_at != request.effective_at:
                 raise ExecutionLeaseInvalid("Revocation semantic boundary does not match retained evidence.")
+            if request.prior_event_id != revocation.target_event_id:
+                raise ExecutionLeaseInvalid("Opaque revocation evidence does not target the retained prior event.")
+            prior = self.repository.record(request.prior_event_id)
+            if prior is None or prior.event.lease_id != revocation.target_lease_id:
+                raise ExecutionLeaseInvalid("Opaque revocation evidence does not target the retained lease.")
+            # Canonical integrity and target scope cannot establish the issuer authority
+            # that ADR 0013 deliberately leaves to later governance.
+            raise ExecutionLeaseIllegalTransition(
+                "Revocation authority remains unresolved by governance; revocation fails closed."
+            )
         return authorization, revocation, policy_for(request.lease_policy_id, request.lease_policy_version, request.lease_policy_digest)
 
     def _decision(self, request: ExecutionLeaseRequest, state: LeaseDerivedState) -> tuple[LeaseEventType, int, str | None]:
@@ -239,13 +249,18 @@ class ExecutionLeaseService:
         return state, rebuilt_by_id
 
     def evaluate(self, request: ExecutionLeaseRequest) -> ExecutionLeaseEvaluationResult:
-        authorization, revocation, policy = self._resolve(request)
         identity = idempotency_identity(request)
         prior_record = self.repository.idempotency_record(
             organization_id=request.organization_id,
             lineage_key=request.lineage_key,
             idempotency=identity,
         )
+        if prior_record is not None:
+            if request != prior_record.request:
+                raise ExecutionLeaseIdempotencyConflict(
+                    "Execution Lease idempotency identity was reused with different canonical input."
+                )
+        authorization, revocation, policy = self._resolve(request)
         if prior_record is not None:
             retry_input = canonical_input_content(
                 request, authorization, revocation, policy,

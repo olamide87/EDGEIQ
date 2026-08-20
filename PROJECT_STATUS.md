@@ -467,7 +467,8 @@ The implementation candidate supplies only process-local immutable lease lineage
 events; canonical UTF-8 serialization; deterministic lineage, lease, event, and
 idempotency identities and digests; owner-assigned generation; distinct lineage
 version; bounded permissions; verification-only retained Authorization Checkpoint
-evidence; grant, renewal, retained-directive revocation, and active-generation
+evidence; grant, renewal, a revocation lifecycle model that fails closed pending
+authority governance, and active-generation
 supersession; retained-time applicability; scoped idempotency; expected-version CAS;
 rollback-safe copy-on-write publication; deterministic reconstruction; and
 organization/workload isolation. It creates no downstream artifact or effect.

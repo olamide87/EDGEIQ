@@ -26,7 +26,7 @@ from app.runtime.execution_lease.domain import (
 from app.runtime.execution_lease.evidence import (
     authorization_source,
     build_authorization_evidence,
-    build_revocation_evidence,
+    build_opaque_revocation_evidence,
     revocation_source,
 )
 from app.runtime.execution_lease.policy import EXECUTION_LEASE_POLICY_V1
@@ -102,18 +102,16 @@ class Context:
         self.authorizations.retain(evidence)
         return evidence
 
-    def add_revocation(self, identity="revocation:1", *, effective_at=NOW + timedelta(hours=1), organization_id=None):
-        evidence = build_revocation_evidence(
-            directive_id=identity,
+    def add_revocation(self, prior, identity="revocation:1", *, effective_at=NOW + timedelta(hours=1), organization_id=None, workload_context_id=None):
+        evidence = build_opaque_revocation_evidence(
+            evidence_id=identity,
             organization_id=organization_id or self.organization_id,
-            workload_context_id=self.workload_context_id,
+            workload_context_id=workload_context_id or self.workload_context_id,
             plan_id="plan:1",
             work_item_id="work-item:1",
             permission_family="work-item-execution.v1",
-            authority_id="retained-authority:1",
-            policy_id="revocation-policy",
-            policy_version="revocation-policy.v1",
-            reason="authority withdrawn",
+            target_lease_id=prior.lease_id,
+            target_event_id=prior.event_id,
             effective_at=effective_at,
         )
         self.revocations.retain(evidence)
@@ -182,14 +180,14 @@ class Context:
         return self.service.evaluate(self.request(LeaseOperation.SUPERSEDE, **values)).event
 
     def revoke(self, prior, **changes):
-        directive = changes.pop("directive", self.add_revocation(effective_at=NOW + timedelta(minutes=prior.lineage_version)))
+        directive = changes.pop("directive", self.add_revocation(prior, effective_at=NOW + timedelta(minutes=prior.lineage_version)))
         values = {
             "authorization_evidence_id": None,
             "authorization_evidence_digest": None,
             "authorization_history_boundary": None,
             "requested_permissions": (),
             "prior_event_id": prior.event_id,
-            "revocation_evidence_id": directive.directive_id,
+            "revocation_evidence_id": directive.evidence_id,
             "revocation_evidence_digest": directive.canonical_digest,
             "effective_at": directive.effective_at,
             "expires_at": None,
@@ -324,28 +322,37 @@ def test_generation_is_monotonic_across_repeated_active_supersession() -> None:
     assert (first.lineage_version, second.lineage_version, third.lineage_version) == (1, 2, 3)
 
 
-def test_revocation_is_immutable_and_post_revocation_policy_stops() -> None:
+def test_self_consistent_opaque_revocation_cannot_create_authority() -> None:
     context = Context()
     granted = context.grant()
-    revoked = context.revoke(granted)
-    assert revoked.event_type is LeaseEventType.REVOKED
-    assert revoked.generation == 1
-    assert revoked.revocation_reference is not None
-    with pytest.raises(ExecutionLeaseIllegalTransition, match="deferred"):
-        context.renew(revoked)
+    before = context.repository._state
+    with pytest.raises(ExecutionLeaseIllegalTransition, match="authority remains unresolved"):
+        context.revoke(granted)
+    assert context.repository._state is before
+    assert context.service.reconstruct(
+        granted.event_id, organization_id="org-1", workload_context_id="workload-1"
+    ) == granted
 
 
 def test_revocation_scope_and_digest_fail_closed() -> None:
     context = Context()
     granted = context.grant()
-    wrong = build_revocation_evidence(
-        directive_id="revocation:wrong", organization_id="org-1", workload_context_id="workload-1",
+    wrong = build_opaque_revocation_evidence(
+        evidence_id="revocation:wrong", organization_id="org-1", workload_context_id="workload-1",
         plan_id="plan:other", work_item_id="work-item:1", permission_family="work-item-execution.v1",
-        authority_id="authority", policy_id="policy", policy_version="v1", reason="x", effective_at=NOW,
+        target_lease_id=granted.lease_id, target_event_id=granted.event_id, effective_at=NOW,
     )
     context.revocations.retain(wrong)
+    before = context.repository._state
     with pytest.raises(ExecutionLeaseInvalid, match="scope"):
         context.revoke(granted, directive=wrong)
+    assert context.repository._state is before
+
+    valid = context.add_revocation(granted, "revocation:corrupt", effective_at=NOW)
+    context.revocations._items[valid.evidence_id] = replace(valid, canonical_digest="f" * 64)
+    with pytest.raises(ExecutionLeaseDigestMismatch, match="canonical verification"):
+        context.revoke(granted, directive=replace(valid, canonical_digest="f" * 64))
+    assert context.repository._state is before
 
 
 def test_half_open_applicability_and_wall_clock_independence() -> None:
@@ -357,25 +364,53 @@ def test_half_open_applicability_and_wall_clock_independence() -> None:
     assert not context.service.applicable(key, organization_id="org-1", workload_context_id="workload-1", evaluation_at=event.expires_at)
 
 
-def test_revocation_applicability_uses_retained_history_boundary() -> None:
-    context = Context()
-    granted = context.grant()
-    context.revoke(granted)
-    key = context.request().lineage_key
-    assert context.service.applicable(key, organization_id="org-1", workload_context_id="workload-1", evaluation_at=NOW, through_version=1)
-    assert not context.service.applicable(key, organization_id="org-1", workload_context_id="workload-1", evaluation_at=NOW, through_version=2)
-
-
 def test_equivalent_retry_converges_and_conflicting_reuse_fails() -> None:
     context = Context()
     request = context.request()
     first = context.service.evaluate(request)
+    state_after_first = context.repository._state
     second = context.service.evaluate(request)
     assert second.outcome is LeaseEvaluationOutcome.EXISTING_EQUIVALENT
     assert second.event is first.event
+    assert context.repository._state is state_after_first
+    assert len(state_after_first.streams) == len(state_after_first.by_id) == len(state_after_first.idempotency) == len(state_after_first.current) == 1
     with pytest.raises(ExecutionLeaseIdempotencyConflict):
         context.service.evaluate(replace(request, expires_at=NOW + timedelta(hours=1)))
     assert len(context.repository.history(request.lineage_key)) == 1
+
+
+def test_conflicting_idempotency_covers_every_authoritative_dimension() -> None:
+    context = Context()
+    granted = context.grant()
+    authorization = context.add_authorization("authorization:renew:idempotency")
+    request = context.request(
+        LeaseOperation.RENEW,
+        authorization=authorization,
+        prior_event_id=granted.event_id,
+        expected_lineage_version=1,
+        idempotency_key="renew-idempotency",
+        effective_at=NOW + timedelta(minutes=1),
+        expires_at=NOW + timedelta(hours=3),
+        evaluation_at=NOW + timedelta(minutes=1),
+    )
+    context.service.evaluate(request)
+    other = context.add_authorization("authorization:renew:other")
+    variants = (
+        replace(request, authorization_evidence_id=other.authorization_id, authorization_evidence_digest=other.canonical_digest, authorization_history_boundary=other.history_boundary),
+        replace(request, authorization_evidence_digest="f" * 64),
+        replace(request, requested_permissions=(LeasePermission.INITIATE_WORK_ITEM_EXECUTION,)),
+        replace(request, effective_at=request.effective_at + timedelta(seconds=1)),
+        replace(request, expires_at=request.expires_at - timedelta(seconds=1)),
+        replace(request, prior_event_id="different-causal-event"),
+        replace(request, lease_policy_version="unsupported-policy-version"),
+        replace(request, authorization_history_boundary="different-history-boundary"),
+        replace(request, configuration_version="different-config.v1"),
+    )
+    committed = context.repository._state
+    for variant in variants:
+        with pytest.raises(ExecutionLeaseIdempotencyConflict):
+            context.service.evaluate(variant)
+        assert context.repository._state is committed
 
 
 def test_stale_expected_version_appends_nothing() -> None:
@@ -399,6 +434,13 @@ def test_concurrent_initial_grant_has_one_successor() -> None:
     results = _race(lambda: context.service.evaluate(left), lambda: context.service.evaluate(right))
     assert sum(not isinstance(value, Exception) for value in results) == 1
     assert sum(isinstance(value, ExecutionLeaseVersionConflict) for value in results) == 1
+    state = context.repository._state
+    assert len(state.streams[left.lineage_key]) == 1
+    assert len(state.by_id) == len(state.current) == len(state.idempotency) == 1
+    winner = next(value.event for value in results if not isinstance(value, Exception))
+    assert state.current[left.lineage_key] is winner
+    assert state.by_id[winner.event_id].event is winner
+    assert winner.generation == winner.lineage_version == 1
 
 
 def test_equivalent_concurrent_retry_converges() -> None:
@@ -409,41 +451,41 @@ def test_equivalent_concurrent_retry_converges() -> None:
     assert len(context.repository.history(request.lineage_key)) == 1
 
 
-@pytest.mark.parametrize("right_operation", [LeaseOperation.RENEW, LeaseOperation.REVOKE, LeaseOperation.SUPERSEDE])
+@pytest.mark.parametrize("right_operation", [LeaseOperation.RENEW, LeaseOperation.SUPERSEDE])
 def test_concurrent_lifecycle_operations_have_one_successor(right_operation) -> None:
     context = Context()
     granted = context.grant()
     fresh1 = context.add_authorization("authorization:race:1")
     left = context.request(LeaseOperation.RENEW, authorization=fresh1, prior_event_id=granted.event_id, expected_lineage_version=1, idempotency_key="race-left", effective_at=NOW + timedelta(minutes=1), expires_at=NOW + timedelta(hours=3), evaluation_at=NOW + timedelta(minutes=1))
-    if right_operation is LeaseOperation.REVOKE:
-        directive = context.add_revocation(effective_at=NOW + timedelta(minutes=1))
-        right = context.request(LeaseOperation.REVOKE, authorization_evidence_id=None, authorization_evidence_digest=None, authorization_history_boundary=None, requested_permissions=(), prior_event_id=granted.event_id, revocation_evidence_id=directive.directive_id, revocation_evidence_digest=directive.canonical_digest, effective_at=directive.effective_at, expires_at=None, evaluation_at=directive.effective_at, expected_lineage_version=1, idempotency_key="race-right")
-    else:
-        fresh2 = context.add_authorization("authorization:race:2")
-        right = context.request(right_operation, authorization=fresh2, prior_event_id=granted.event_id, expected_lineage_version=1, idempotency_key="race-right", effective_at=NOW + timedelta(minutes=1), expires_at=NOW + timedelta(hours=3), evaluation_at=NOW + timedelta(minutes=1))
+    fresh2 = context.add_authorization("authorization:race:2")
+    right = context.request(right_operation, authorization=fresh2, prior_event_id=granted.event_id, expected_lineage_version=1, idempotency_key="race-right", effective_at=NOW + timedelta(minutes=1), expires_at=NOW + timedelta(hours=3), evaluation_at=NOW + timedelta(minutes=1))
     results = _race(lambda: context.service.evaluate(left), lambda: context.service.evaluate(right))
     assert sum(not isinstance(value, Exception) for value in results) == 1
-    assert len(context.repository.history(left.lineage_key)) == 2
-
-
-def test_revocation_versus_supersession_has_one_successor() -> None:
-    context = Context()
-    granted = context.grant()
-    directive = context.add_revocation(effective_at=NOW + timedelta(minutes=1))
-    revoke = context.request(LeaseOperation.REVOKE, authorization_evidence_id=None, authorization_evidence_digest=None, authorization_history_boundary=None, requested_permissions=(), prior_event_id=granted.event_id, revocation_evidence_id=directive.directive_id, revocation_evidence_digest=directive.canonical_digest, effective_at=directive.effective_at, expires_at=None, evaluation_at=directive.effective_at, expected_lineage_version=1, idempotency_key="revoke-race")
-    fresh = context.add_authorization("authorization:supersede-race")
-    supersede = context.request(LeaseOperation.SUPERSEDE, authorization=fresh, prior_event_id=granted.event_id, expected_lineage_version=1, idempotency_key="supersede-race", effective_at=NOW + timedelta(minutes=1), expires_at=NOW + timedelta(hours=3), evaluation_at=NOW + timedelta(minutes=1))
-    results = _race(lambda: context.service.evaluate(revoke), lambda: context.service.evaluate(supersede))
-    assert sum(not isinstance(value, Exception) for value in results) == 1
     assert sum(isinstance(value, ExecutionLeaseVersionConflict) for value in results) == 1
+    state = context.repository._state
+    history = state.streams[left.lineage_key]
+    assert len(history) == 2
+    assert history[0].event is granted
+    successor = next(value.event for value in results if not isinstance(value, Exception))
+    assert history[1].event is successor
+    assert state.current[left.lineage_key] is successor
+    assert len(state.by_id) == 2 and len(state.idempotency) == 2
+    assert successor.lineage_version == 2
+    assert successor.generation in (1, 2)
 
 
 def test_atomic_publication_failure_exposes_no_empty_state() -> None:
     repository = FailingRepository()
     context = Context(repository=repository)
     request = context.request()
+    before = repository._state
     with pytest.raises(ExecutionLeasePersistenceFailure):
         context.service.evaluate(request)
+    assert repository._state is before
+    assert dict(before.streams) == {}
+    assert dict(before.by_id) == {}
+    assert dict(before.idempotency) == {}
+    assert dict(before.current) == {}
     assert repository.history(request.lineage_key) == ()
     assert repository.current(request.lineage_key) is None
 
@@ -458,6 +500,9 @@ def test_atomic_publication_failure_preserves_prior_state() -> None:
     with pytest.raises(ExecutionLeasePersistenceFailure):
         context.renew(granted)
     assert repository._state is before
+    assert len(before.streams[context.request().lineage_key]) == 1
+    assert len(before.by_id) == len(before.idempotency) == len(before.current) == 1
+    assert before.current[context.request().lineage_key] is granted
 
 
 def test_history_is_append_only_and_events_are_immutable() -> None:
@@ -536,24 +581,33 @@ def test_reconstruction_detects_version_generation_and_transition_divergence() -
 def test_absent_and_foreign_authorization_are_indistinguishable() -> None:
     context = Context()
     absent = context.request(authorization_evidence_id="authorization:absent", authorization_evidence_digest="b" * 64)
-    foreign = context.add_authorization("authorization:foreign", organization_id="org-2")
-    foreign_request = context.request(authorization=foreign)
-    for request in (absent, foreign_request):
-        with pytest.raises(ExecutionLeaseEvidenceUnavailable, match=f"^{SAFE_EVIDENCE_MESSAGE}$"):
+    foreign_org = context.add_authorization("authorization:foreign-org", organization_id="org-2")
+    foreign_workload = context.add_authorization("authorization:foreign-workload", workload_context_id="workload-2")
+    requests = (absent, context.request(authorization=foreign_org), context.request(authorization=foreign_workload))
+    before = context.repository._state
+    for request in requests:
+        with pytest.raises(ExecutionLeaseEvidenceUnavailable, match=f"^{SAFE_EVIDENCE_MESSAGE}$") as caught:
             context.service.evaluate(request)
+        assert caught.value.code == "ExecutionLeaseEvidenceUnavailable"
+        assert context.repository._state is before
 
 
 def test_absent_and_foreign_revocation_are_indistinguishable() -> None:
     context = Context()
     granted = context.grant()
-    foreign = context.add_revocation("revocation:foreign", organization_id="org-2", effective_at=NOW + timedelta(minutes=1))
+    foreign_org = context.add_revocation(granted, "revocation:foreign-org", organization_id="org-2", effective_at=NOW + timedelta(minutes=1))
+    foreign_workload = context.add_revocation(granted, "revocation:foreign-workload", workload_context_id="workload-2", effective_at=NOW + timedelta(minutes=1))
     requests = (
         context.request(LeaseOperation.REVOKE, authorization_evidence_id=None, authorization_evidence_digest=None, authorization_history_boundary=None, requested_permissions=(), prior_event_id=granted.event_id, revocation_evidence_id="revocation:absent", revocation_evidence_digest="b" * 64, effective_at=NOW + timedelta(minutes=1), expires_at=None, evaluation_at=NOW + timedelta(minutes=1), expected_lineage_version=1, idempotency_key="absent"),
-        context.request(LeaseOperation.REVOKE, authorization_evidence_id=None, authorization_evidence_digest=None, authorization_history_boundary=None, requested_permissions=(), prior_event_id=granted.event_id, revocation_evidence_id=foreign.directive_id, revocation_evidence_digest=foreign.canonical_digest, effective_at=foreign.effective_at, expires_at=None, evaluation_at=foreign.effective_at, expected_lineage_version=1, idempotency_key="foreign"),
+        context.request(LeaseOperation.REVOKE, authorization_evidence_id=None, authorization_evidence_digest=None, authorization_history_boundary=None, requested_permissions=(), prior_event_id=granted.event_id, revocation_evidence_id=foreign_org.evidence_id, revocation_evidence_digest=foreign_org.canonical_digest, effective_at=foreign_org.effective_at, expires_at=None, evaluation_at=foreign_org.effective_at, expected_lineage_version=1, idempotency_key="foreign-org"),
+        context.request(LeaseOperation.REVOKE, authorization_evidence_id=None, authorization_evidence_digest=None, authorization_history_boundary=None, requested_permissions=(), prior_event_id=granted.event_id, revocation_evidence_id=foreign_workload.evidence_id, revocation_evidence_digest=foreign_workload.canonical_digest, effective_at=foreign_workload.effective_at, expires_at=None, evaluation_at=foreign_workload.effective_at, expected_lineage_version=1, idempotency_key="foreign-workload"),
     )
+    before = context.repository._state
     for request in requests:
-        with pytest.raises(ExecutionLeaseEvidenceUnavailable, match=f"^{SAFE_EVIDENCE_MESSAGE}$"):
+        with pytest.raises(ExecutionLeaseEvidenceUnavailable, match=f"^{SAFE_EVIDENCE_MESSAGE}$") as caught:
             context.service.evaluate(request)
+        assert caught.value.code == "ExecutionLeaseEvidenceUnavailable"
+        assert context.repository._state is before
 
 
 def test_organization_and_workload_isolation_hide_events() -> None:

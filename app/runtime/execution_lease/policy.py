@@ -20,7 +20,7 @@ def _policy(policy_id: str, policy_version: str) -> RegisteredExecutionLeasePoli
         "rules": (
             "one_authoritative_lineage", "owner_assigned_generation",
             "same_generation_renewal", "active_generation_supersession",
-            "retained_directive_revocation", "half_open_applicability",
+            "revocation_authority_deferred_fail_closed", "half_open_applicability",
             "no_post_revocation_generation",
         ),
     }).encode("utf-8")

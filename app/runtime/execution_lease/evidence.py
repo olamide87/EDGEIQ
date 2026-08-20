@@ -16,11 +16,11 @@ from app.runtime.execution_lease.domain import (
 )
 
 AUTHORIZATION_NAMESPACE = "edgeiq.authorization-checkpoint-evidence.v1"
-REVOCATION_NAMESPACE = "edgeiq.execution-lease-revocation-evidence.v1"
+REVOCATION_NAMESPACE = "edgeiq.opaque-retained-revocation-evidence.v1"
 SUPPORTED_AUTHORIZATION_SCHEMA = "authorization-checkpoint-evidence.v1"
 SUPPORTED_AUTHORIZATION_COMPONENT = "authorization-checkpoint.service.v1"
-SUPPORTED_REVOCATION_SCHEMA = "execution-lease-revocation-directive.v1"
-SUPPORTED_REVOCATION_COMPONENT = "execution-lease-revocation-authority.v1"
+SUPPORTED_REVOCATION_SCHEMA = "opaque-retained-revocation-evidence.v1"
+SUPPORTED_REVOCATION_COMPONENT = "retained-evidence-port.v1"
 
 
 @dataclass(frozen=True)
@@ -54,17 +54,17 @@ class RetainedAuthorizationEvidence:
 
 
 @dataclass(frozen=True)
-class RetainedRevocationEvidence:
-    directive_id: str
+class OpaqueRetainedRevocationEvidence:
+    """Integrity/scope envelope only; it carries no issuer or revocation authority."""
+
+    evidence_id: str
     organization_id: str
     workload_context_id: str
     plan_id: str
     work_item_id: str
     permission_family: str
-    authority_id: str
-    policy_id: str
-    policy_version: str
-    reason: str
+    target_lease_id: str
+    target_event_id: str
     effective_at: datetime
     schema_version: str
     component_version: str
@@ -132,32 +132,30 @@ def build_authorization_evidence(
     return RetainedAuthorizationEvidence(**document, canonical_digest=namespaced_digest(AUTHORIZATION_NAMESPACE, content), canonical_content=content)
 
 
-def build_revocation_evidence(
-    *, directive_id: str, organization_id: str, workload_context_id: str,
-    plan_id: str, work_item_id: str, permission_family: str, authority_id: str,
-    policy_id: str, policy_version: str, reason: str, effective_at: datetime,
+def build_opaque_revocation_evidence(
+    *, evidence_id: str, organization_id: str, workload_context_id: str,
+    plan_id: str, work_item_id: str, permission_family: str,
+    target_lease_id: str, target_event_id: str, effective_at: datetime,
     schema_version: str = SUPPORTED_REVOCATION_SCHEMA,
     component_version: str = SUPPORTED_REVOCATION_COMPONENT,
     serialization_version: str = "canonical-json.v1",
-) -> RetainedRevocationEvidence:
+) -> OpaqueRetainedRevocationEvidence:
     document = {
-        "authority_id": required_text(authority_id, "authority_id"),
         "component_version": component_version,
-        "directive_id": required_text(directive_id, "directive_id"),
+        "evidence_id": required_text(evidence_id, "evidence_id"),
         "effective_at": utc_time(effective_at, "revocation_effective_at"),
         "organization_id": required_text(organization_id, "organization_id"),
         "permission_family": required_text(permission_family, "permission_family"),
         "plan_id": required_text(plan_id, "plan_id"),
-        "policy_id": required_text(policy_id, "policy_id"),
-        "policy_version": required_text(policy_version, "policy_version"),
-        "reason": required_text(reason, "reason"),
         "schema_version": schema_version,
         "serialization_version": serialization_version,
+        "target_event_id": required_text(target_event_id, "target_event_id"),
+        "target_lease_id": required_text(target_lease_id, "target_lease_id"),
         "work_item_id": required_text(work_item_id, "work_item_id"),
         "workload_context_id": required_text(workload_context_id, "workload_context_id"),
     }
     content = canonical_json(document).encode("utf-8")
-    return RetainedRevocationEvidence(**document, canonical_digest=namespaced_digest(REVOCATION_NAMESPACE, content), canonical_content=content)
+    return OpaqueRetainedRevocationEvidence(**document, canonical_digest=namespaced_digest(REVOCATION_NAMESPACE, content), canonical_content=content)
 
 
 def validate_authorization(value: RetainedAuthorizationEvidence) -> None:
@@ -181,15 +179,14 @@ def validate_authorization(value: RetainedAuthorizationEvidence) -> None:
         raise ExecutionLeaseDigestMismatch("Retained Authorization Checkpoint evidence failed canonical verification.")
 
 
-def validate_revocation(value: RetainedRevocationEvidence) -> None:
+def validate_opaque_revocation(value: OpaqueRetainedRevocationEvidence) -> None:
     if value.schema_version != SUPPORTED_REVOCATION_SCHEMA or value.component_version != SUPPORTED_REVOCATION_COMPONENT or value.serialization_version != "canonical-json.v1":
         raise ExecutionLeaseVersionUnsupported("Unsupported revocation evidence version.")
-    rebuilt = build_revocation_evidence(
-        directive_id=value.directive_id, organization_id=value.organization_id,
+    rebuilt = build_opaque_revocation_evidence(
+        evidence_id=value.evidence_id, organization_id=value.organization_id,
         workload_context_id=value.workload_context_id, plan_id=value.plan_id,
         work_item_id=value.work_item_id, permission_family=value.permission_family,
-        authority_id=value.authority_id, policy_id=value.policy_id,
-        policy_version=value.policy_version, reason=value.reason,
+        target_lease_id=value.target_lease_id, target_event_id=value.target_event_id,
         effective_at=value.effective_at, schema_version=value.schema_version,
         component_version=value.component_version, serialization_version=value.serialization_version,
     )
@@ -235,8 +232,8 @@ def authorization_source() -> InMemoryScopedEvidenceSource[RetainedAuthorization
     return InMemoryScopedEvidenceSource(lambda value: value.authorization_id, validate_authorization, lambda value: value.organization_id, lambda value: value.workload_context_id)
 
 
-def revocation_source() -> InMemoryScopedEvidenceSource[RetainedRevocationEvidence]:
-    return InMemoryScopedEvidenceSource(lambda value: value.directive_id, validate_revocation, lambda value: value.organization_id, lambda value: value.workload_context_id)
+def revocation_source() -> InMemoryScopedEvidenceSource[OpaqueRetainedRevocationEvidence]:
+    return InMemoryScopedEvidenceSource(lambda value: value.evidence_id, validate_opaque_revocation, lambda value: value.organization_id, lambda value: value.workload_context_id)
 
 
 def require_evidence(source: ScopedEvidenceSource[T], artifact_id: str, *, organization_id: str, workload_context_id: str) -> T:

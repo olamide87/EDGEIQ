@@ -10,7 +10,7 @@ from app.runtime.execution_lease.domain import (
     LeaseEventType,
     LeaseReconstructionMetadata,
 )
-from app.runtime.execution_lease.evidence import RetainedAuthorizationEvidence, RetainedRevocationEvidence
+from app.runtime.execution_lease.evidence import OpaqueRetainedRevocationEvidence, RetainedAuthorizationEvidence
 from app.runtime.execution_lease.policy import RegisteredExecutionLeasePolicy
 
 LINEAGE_ID_NAMESPACE = "edgeiq.execution-lease-lineage-id.v1"
@@ -42,7 +42,7 @@ def idempotency_identity(request: ExecutionLeaseRequest) -> str:
 def canonical_input_document(
     request: ExecutionLeaseRequest,
     authorization: RetainedAuthorizationEvidence | None,
-    revocation: RetainedRevocationEvidence | None,
+    revocation: OpaqueRetainedRevocationEvidence | None,
     policy: RegisteredExecutionLeasePolicy,
     *, generation: int,
 ) -> dict[str, Any]:
@@ -96,16 +96,14 @@ def canonical_input_document(
         "prior_event_id": request.prior_event_id,
         "requested_permissions": request.requested_permissions,
         "revocation_evidence": None if revocation is None else {
-            "authority_id": revocation.authority_id,
             "canonical_digest": revocation.canonical_digest,
             "component_version": revocation.component_version,
-            "directive_id": revocation.directive_id,
+            "evidence_id": revocation.evidence_id,
             "effective_at": revocation.effective_at,
-            "policy_id": revocation.policy_id,
-            "policy_version": revocation.policy_version,
-            "reason": revocation.reason,
             "schema_version": revocation.schema_version,
             "serialization_version": revocation.serialization_version,
+            "target_event_id": revocation.target_event_id,
+            "target_lease_id": revocation.target_lease_id,
         },
         "schema_version": request.schema_version,
         "serialization_version": request.serialization_version,
@@ -114,14 +112,14 @@ def canonical_input_document(
     }
 
 
-def canonical_input_content(request: ExecutionLeaseRequest, authorization: RetainedAuthorizationEvidence | None, revocation: RetainedRevocationEvidence | None, policy: RegisteredExecutionLeasePolicy, *, generation: int) -> bytes:
+def canonical_input_content(request: ExecutionLeaseRequest, authorization: RetainedAuthorizationEvidence | None, revocation: OpaqueRetainedRevocationEvidence | None, policy: RegisteredExecutionLeasePolicy, *, generation: int) -> bytes:
     return canonical_json(canonical_input_document(request, authorization, revocation, policy, generation=generation)).encode("utf-8")
 
 
 def build_execution_lease_event(
     request: ExecutionLeaseRequest,
     authorization: RetainedAuthorizationEvidence | None,
-    revocation: RetainedRevocationEvidence | None,
+    revocation: OpaqueRetainedRevocationEvidence | None,
     policy: RegisteredExecutionLeasePolicy,
     *, event_type: LeaseEventType, generation: int, lineage_version: int,
     idempotency: str, superseded_lease_id: str | None = None,
@@ -165,7 +163,7 @@ def build_execution_lease_event(
             "serialization_version": request.serialization_version,
         },
         "revocation_reference": None if revocation is None else {
-            "artifact_id": revocation.directive_id,
+            "artifact_id": revocation.evidence_id,
             "canonical_digest": revocation.canonical_digest,
         },
         "schema_version": request.schema_version,
@@ -187,7 +185,7 @@ def build_execution_lease_event(
         permission_family=request.permission_family, event_type=event_type,
         permissions=permissions,
         authorization_reference=None if authorization is None else EvidenceReference(authorization.authorization_id, authorization.canonical_digest),
-        revocation_reference=None if revocation is None else EvidenceReference(revocation.directive_id, revocation.canonical_digest),
+        revocation_reference=None if revocation is None else EvidenceReference(revocation.evidence_id, revocation.canonical_digest),
         policy_reference=EvidenceReference(policy.policy_id, policy.canonical_digest),
         policy_version=policy.policy_version, generation=generation,
         lineage_version=lineage_version, prior_event_id=request.prior_event_id,
