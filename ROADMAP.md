@@ -21,7 +21,7 @@ complexity is earned through reproducibility and held-out evidence.
 | v0.9B | Immutable Execution Plan Foundation | Complete |
 | v0.10A | Dispatch Decision Foundation | Complete |
 | v0.10B | Work Claim Foundation | Complete |
-| — | Execution Lease Foundation authorization | Effective; implementation not started |
+| — | Execution Lease Foundation | Implemented on `main` within bounded authorization |
 | v1.0 | Public Beta | Planned |
 
 ## v0.5 promotion sequence
@@ -404,10 +404,13 @@ unchanged.
 Before merge, branch creation, opening PR #33, CI PASS, Governance Review Gate PASS,
 Ready-for-Review status, and governance comments did not authorize implementation.
 PR #33's merge into `main` satisfied the sole effective condition; authorization is
-no longer pending or ineffective. The `feature/execution-lease-foundation` branch now
-contains a bounded implementation candidate intended only for a Draft PR. It is not
-merged or part of `main`; a complete Implementation Review Gate, CI, and merge review
-remain required.
+no longer pending or ineffective. PR #35 was reviewed at
+`046996165da8bbb83a3f469745ba5ed624aa2258`, passed its Implementation Review Gate
+and CI, and was squash-merged into `main` at
+`e2dd314450c969d7afeaf937cb0227388e7b42d1`. That merge exercised the bounded
+authorization and made the Execution Lease Foundation part of the repository
+baseline. ADR 0013 remains Proposed and unchanged; PR #35 did not mark it Accepted.
+ADRs 0007–0012 remain unchanged and controlling.
 
 The effective authorization is limited to:
 
@@ -512,7 +515,7 @@ execution; Monitoring; Completion; Retry; scheduling; orchestration; public APIs
 routes; controllers; migrations; background workers; external effects; durable
 distributed persistence; end-to-end execution; or any later milestone.
 
-The implementation candidate supplies only process-local immutable lease lineage
+The merged implementation supplies only process-local immutable lease lineage
 events; canonical UTF-8 serialization; deterministic lineage, lease, event, and
 idempotency identities and digests; owner-assigned generation; distinct lineage
 version; bounded permissions; verification-only retained Authorization Checkpoint
@@ -521,6 +524,14 @@ authority governance, and active-generation
 supersession; retained-time applicability; scoped idempotency; expected-version CAS;
 rollback-safe copy-on-write publication; deterministic reconstruction; and
 organization/workload isolation. It creates no downstream artifact or effect.
+
+No concrete revocation-authority contract exists. Canonically self-consistent opaque
+evidence proves integrity and scope only and does not grant revocation authority. No
+successful revocation is authorized solely by Execution Lease-owned evidence
+integrity, unresolved revocation authority fails closed without publication, and the
+implementation introduces no issuer, administrator, role, or trust-authority
+semantics. Post-revocation continuation remains governance-deferred; this temporary
+fail-closed boundary is not a permanent architectural prohibition.
 
 The concrete revocation-directive and authorized-issuer contract, maximum duration and
 renewal-window policy, post-revocation later-generation policy,
@@ -531,10 +542,14 @@ where ADR 0013 already fixes ownership. Any need for new externally meaningful
 authority, security, lifecycle, or concurrency semantics requires work to stop and
 return to governance.
 
-This implementation candidate is not yet merged and requires a complete
-Implementation Review Gate, CI, and merge review. ADR 0013 remains Proposed. Material
-deviation requires new or amended architecture governance. No Execution Attempt,
-Execution Effect/Runtime, or later runtime layer is authorized.
+PR #35 was squash-merged after Implementation Review Gate: **PASS** and CI: **PASS**.
+Final reviewed validation recorded 40 focused Execution Lease tests, 221 runtime
+tests, and 382 full-suite tests. Python compilation, Alembic upgrade/check,
+`git diff --check`, Markdown local links, documentation consistency, stale-status,
+dependency-direction, and forbidden-scope audits passed; no migration was added.
+ADR 0013 remains Proposed. Material deviation requires new or amended architecture
+governance. No Execution Attempt, Execution Effect/Runtime, or later runtime layer is
+authorized.
 
 ## Roadmap governance
 
@@ -546,8 +561,11 @@ authorization effective through publication, CI, review, comments, or Ready stat
 The Execution Lease authorization became effective only when PR #33 merged into
 `main` at `543a5d787c9fcd8bda4c1b67e96c69aab3f379c2`. Its earlier branch, PR, CI,
 review, Ready, and governance-comment states were non-authorizing. ADR 0013 remains
-Proposed and unchanged. Implementation has not started and still requires a separate
-implementation PR and complete Implementation Review Gate.
+Proposed and unchanged. PR #35 was reviewed at
+`046996165da8bbb83a3f469745ba5ed624aa2258`, passed its Implementation Review Gate
+and CI, and was squash-merged at `e2dd314450c969d7afeaf937cb0227388e7b42d1`.
+The bounded Execution Lease Foundation is implemented on `main`; ADRs 0007–0012
+remain unchanged and controlling, and no downstream runtime capability is authorized.
 
 New architectural capability requires an accepted ADR and a successful Architecture
 Review Gate. Implementation begins only after a separate explicit authorization
