@@ -533,14 +533,27 @@ implementation introduces no issuer, administrator, role, or trust-authority
 semantics. Post-revocation continuation remains governance-deferred; this temporary
 fail-closed boundary is not a permanent architectural prohibition.
 
+Reconstruction and replay preserve this same unresolved revocation-authority
+boundary. Opaque revocation evidence may establish retained integrity, scope,
+identity, version, target, causality, and semantic timestamps and boundaries only;
+reconstruction must not reinterpret canonical validity, digest validity, or any
+other evidence integrity as proof of revocation authority. It must not manufacture
+or infer trusted
+issuer, administrator, role, signer, revocation-authority semantics, or successful
+revocation authorization.
+Until governance defines the revocation-directive and authorized-issuer contract,
+unsupported authority-dependent reconstruction fails closed.
+
 The concrete revocation-directive and authorized-issuer contract, maximum duration and
 renewal-window policy, post-revocation later-generation policy,
 attempt-admission/effect-initiation revocation race, and concrete
 persistence/API/encoding choices remain non-blocking future governance items. An
 implementation PR must not invent these semantics and may add only abstractions
 where ADR 0013 already fixes ownership. Any need for new externally meaningful
-authority, security, lifecycle, or concurrency semantics requires work to stop and
-return to governance.
+authority, security, lifecycle, concurrency, reconstruction, persistence, API, or
+encoding semantics not established by ADR 0013 and the controlling architecture
+requires implementation to stop and return to governance rather than invent those
+semantics.
 
 PR #35 was squash-merged after Implementation Review Gate: **PASS** and CI: **PASS**.
 Final reviewed validation recorded 40 focused Execution Lease tests, 221 runtime
