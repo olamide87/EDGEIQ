@@ -19,3 +19,4 @@ rewrite accepted decisions.
 - [0011: Dispatch Decision Foundation](0011-dispatch-decision-foundation.md)
 - [0012: Work Claim Foundation](0012-work-claim-foundation.md)
 - [0013: Execution Lease Foundation](0013-execution-lease-foundation.md)
+- [0014: Execution Attempt Admission Foundation](0014-execution-attempt-admission-foundation.md)
