@@ -514,6 +514,167 @@ dependency-direction, and forbidden-scope audits passed; no migration was added.
 ADR 0013 remains Proposed. Material deviation requires amended or new architecture
 governance. No later runtime layer is authorized by this implementation.
 
+## Pending Execution Attempt Admission Foundation Implementation Authorization
+
+ADR 0014 — Execution Attempt Admission Foundation was squash-merged through PR #37.
+Its reviewed head was `46fa747d35655fe041ef603e7f026011a934fb03`, and its merge
+commit was `426778643c7800007e5ff8e2135de848de01c67f`. The Architecture
+Review Gate recorded **PASS**, CI recorded **PASS**, and there were zero blocking or
+non-blocking findings. ADR 0014 remains Proposed. Merging ADR 0014 did **not**
+authorize implementation.
+
+This section is a governance authorization candidate. It does **not currently
+authorize implementation**. Branch creation, commit creation, push, a Draft PR, CI
+PASS, Governance Review Gate PASS, a Ready-for-Review transition, comments, and
+review activity are all non-authorizing. Authorization becomes effective only if
+and when this governance authorization PR is successfully merged into `main`.
+Until then, Execution Attempt implementation remains unauthorized and absent.
+
+After that merge, authorization is limited to the immutable Execution Attempt
+Admission Foundation defined by ADR 0014:
+
+- admission of one exact initial Attempt;
+- immutable `ATTEMPT_ADMITTED` evidence as the only lifecycle event;
+- the owner-scoped Attempt lineage
+  `(organization_id, workload_context_id, plan_id, work_item_id)`;
+- deterministic owner-derived Attempt, event, and evidence identities and digests;
+- Attempt-owned lineage version, canonical serialization, and exact governed schema,
+  serialization, component, policy, and configuration versions;
+- explicit retained semantic admission time;
+- verification-only consumption of exact upstream evidence;
+- Attempt-scoped idempotency and expected-version CAS;
+- rollback-safe, all-or-nothing Attempt-owned publication;
+- immutable history and deterministic reconstruction/replay;
+- organization/workload isolation and foreign-evidence non-disclosure; and
+- bounded implementation documentation and focused tests.
+
+There is no Attempt generation or Attempt number. The implementation must not add
+`attempt_generation`, `attempt_number`, `attempt_sequence`, `retry_number`, or
+`retry_generation`. Attempt lineage version is not an Attempt number. Work Claim
+generation or fence and Execution Lease generation or lineage version cannot be
+repurposed as one. Attempt 2 and every later Attempt remain unauthorized and solely
+subject to future Retry governance.
+
+`ATTEMPT_ADMITTED` records admission truth only; it is not execution truth. No
+`STARTED`, `RUNNING`, `EXECUTING`, `TERMINATED`, `FAILED`, `SUCCEEDED`, `ABANDONED`,
+`SUPERSEDED`, `RESULT`, or `COMPLETED` event or state is authorized.
+
+Admission must verify exact retained Work Claim evidence sufficient to establish an
+accepted and applicable claim, identity, generation, acceptance fence, event/history
+boundary, claimant, selected-candidate linkage, and exact organization, workload,
+plan, and work-item scope. Expired or released-before-admission claims, wrong
+claimants, and selected-candidate mismatches fail closed. Foreign organization or
+workload evidence is masked as absent. Execution Attempt may not create, mutate,
+consume, release, renew, supersede, or reinterpret a Work Claim. Work Claim remains
+the sole owner of claimant exclusivity.
+
+Admission must also verify exact retained Execution Lease lineage, identity,
+generation, event/history boundary, applicable lineage version, matching scope,
+applicable authority, exact `INITIATE_WORK_ITEM_EXECUTION` permission, retained
+Authorization causality, and governed versions and digests. Expired, superseded and
+inapplicable, permission-incomplete, or scope-mismatched Lease evidence fails closed.
+Lease possession alone is insufficient.
+
+Authorization Checkpoint remains the authorization owner, and Execution Lease
+remains the bounded authority-evidence owner. Execution Attempt may verify retained
+Lease applicability and Authorization causality only. It may not originate,
+reinterpret, broaden, bypass, or replace authority, invent permissions, treat
+canonical integrity as authority, or create generic execution authority.
+`INITIATE_WORK_ITEM_EXECUTION` permits only evaluation and admission under exact
+retained evidence. Neither Lease possession nor `ATTEMPT_ADMITTED` performs an
+external action or authorizes execution, provider/model/tool invocation, subprocess
+or remote execution, queues, external writes, or effects.
+
+Semantic admission time is explicit and retained. Upstream applicability is
+evaluated at that boundary. Current wall-clock time, timers, schedulers, timestamps,
+and mutable current-validity projections cannot create admission truth, arbitrate
+concurrency, or become replay authority.
+
+ADR 0013's revocation boundary remains controlling. The implementation must not
+invent issuer, administrator, role, trust, or revocation-policy authority.
+Self-consistent opaque evidence proves no revocation authority; unresolved authority
+fails closed. Future governed revocation applicable before admission may make Lease
+evidence inapplicable.
+
+Revocation after valid admission but before future effect initiation remains
+unresolved. Admission records historical truth, does not freeze future authority,
+and does not decide effect-side revalidation. Likewise, a Work Claim release after
+admission does not rewrite `ATTEMPT_ADMITTED`, but this authorization does not decide
+whether release cancels an Attempt, prevents an effect, creates Completion or Retry
+eligibility, or changes execution authority. Any implementation need to resolve
+either boundary must stop and return to governance.
+
+Attempt-scoped idempotency compares all canonical admission dimensions, including
+organization/workload, plan/work item, exact Claim identity/evidence/generation/
+fence/history and claimant linkage, Dispatch/selected-candidate causality, exact
+Lease identity/evidence/generation/history/permission, semantic time, governed
+versions, and the submitted idempotency identity. An equivalent retry returns the
+original canonical admission without duplicate history, a new identity, version
+advance, or second outcome. Conflicting reuse fails closed with zero publication and
+unchanged repository state. Idempotency cannot authorize another Attempt.
+
+Attempt-owned expected-version CAS permits at most one initial admission successor.
+Stale writers publish no event, index, or idempotency change; they reload and
+recompute. Timestamps never arbitrate. Claim fence and Lease generation/version are
+upstream evidence, while Attempt lineage version is the Attempt-owned concurrency
+boundary. No cross-owner transaction is authorized.
+
+The only atomic publication boundary is one rollback-safe Attempt-owned commit. It
+may contain `ATTEMPT_ADMITTED`, the Attempt identity index, lineage/version state,
+the idempotency record, and an optional non-authoritative projection. Failure leaves
+zero publication or preserves exact prior state. It may not atomically mutate any
+upstream owner, Queue Envelope, Effect/Runtime, Monitoring, Completion, or Retry.
+
+Reconstruction uses only immutable Attempt history, exact retained Work Claim and
+Execution Lease evidence, required Dispatch and Authorization causality, governed
+policies/configuration/versions, and retained semantic admission time. Missing,
+divergent, foreign, unsupported, or authority-incomplete evidence fails closed.
+Replay performs no mutation or effect and does not use current Claim or Lease
+pointers, Authorization or Attempt projections, queues, workers, providers,
+Monitoring, Completion, external systems, current time, or ambient mutable
+configuration as authority.
+
+Attempt identity and idempotency are organization/workload scoped. Foreign Claim
+and Lease evidence is masked as absent. Cross-plan, cross-work-item,
+claimant/worker, selected-candidate, tenant, and workload substitution fails closed.
+Canonical Attempt evidence contains no credentials, secrets, tokens, or reusable
+authentication material.
+
+Focused tests may prove the bounded contract, including valid initial admission;
+deterministic owner-derived identity; the sole-event lifecycle; rejection of
+caller-authored identity/generation/number; exact Claim and Lease evidence;
+claim expiry/release and claimant/candidate mismatch; Lease expiry, supersession,
+permission, and scope failures; organization/workload masking; cross-plan and
+cross-work-item rejection; idempotency convergence/conflict; one-winner CAS and
+stale-writer recomputation; empty/prior-state rollback; deterministic effect-free
+reconstruction; no current-time or mutable-projection authority; opaque-revocation
+fail-closed behavior; and absence of Attempt 2, Monitoring, Completion, and Retry
+publication. Tests may not introduce downstream semantics.
+
+This candidate explicitly excludes actual execution; Execution Effect/Runtime;
+Attempt 2 or later; Retry eligibility, budget, policy, numbering, or scheduling;
+Monitoring and runtime health; Completion, terminal truth, reasons, outcomes, or
+evidence; Queue Envelope, brokers, publication, consumption, schedulers, and worker
+processes; provider/model selection or invocation; tools, subprocesses, remote
+execution, external writes or effects; public APIs, routes, controllers; migrations
+and database tables; durable distributed persistence; background workers;
+infrastructure or deployment changes; and every later runtime capability.
+
+The concrete revocation-authority contract, provider/effect boundary, execution
+mechanism, admission/effect revocation race, post-admission claim-release/effect
+behavior, effect-side authority revalidation, effect/result evidence, Monitoring and
+Completion contracts, Retry eligibility/budget/later-Attempt creation,
+post-revocation later-generation policy, durable persistence, APIs, migrations,
+queues, and concrete external encoding choices remain unresolved. If implementation
+requires externally meaningful semantics not established by ADR 0014 or its
+controlling upstream ADRs, implementation must stop and return to governance.
+
+ADRs 0007–0013 retain control of their existing semantic owners. This candidate
+transfers no ownership from Execution Request, Execution Plan, Worker Selection,
+Dispatch Decision, Work Claim, Authorization Checkpoint, or Execution Lease.
+Execution Attempt may consume their retained evidence only within ADR 0014's
+bounded admission contract.
+
 ## Replay & Audit
 
 - Replay metadata
