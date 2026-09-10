@@ -605,6 +605,15 @@ generation or fence and Execution Lease generation or lineage version cannot be
 repurposed as one. Attempt 2 and every later Attempt remain unauthorized and solely
 subject to future Retry governance.
 
+Public or caller inputs must not author authoritative Attempt identity, Attempt
+lineage version, event identity, canonical digest, admission outcome, Attempt
+generation, or Attempt number. The Attempt owner derives or assigns Attempt
+identity, lineage version, event identity, canonical digest, and admission outcome
+according to the governed Attempt model. Attempt generation and Attempt number do
+not exist and must not be introduced by callers or by the owner. Work Claim
+generation and fence and Execution Lease generation and lineage version remain
+upstream evidence; none becomes an Attempt generation or number.
+
 `ATTEMPT_ADMITTED` records admission truth only; it is not execution truth. No
 `STARTED`, `RUNNING`, `EXECUTING`, `TERMINATED`, `FAILED`, `SUCCEEDED`, `ABANDONED`,
 `SUPERSEDED`, `RESULT`, or `COMPLETED` event or state is authorized.
@@ -662,6 +671,9 @@ versions, and the submitted idempotency identity. An equivalent retry returns th
 original canonical admission without duplicate history, a new identity, version
 advance, or second outcome. Conflicting reuse fails closed with zero publication and
 unchanged repository state. Idempotency cannot authorize another Attempt.
+An equivalent retry must not rewrite, replace, advance, mutate, refresh, or otherwise
+alter the existing authoritative idempotency record or state; it converges on the
+already-published canonical admission with that state exactly unchanged.
 
 Attempt-owned expected-version CAS permits at most one initial admission successor.
 Stale writers publish no event, index, or idempotency change; they reload and
