@@ -514,7 +514,7 @@ dependency-direction, and forbidden-scope audits passed; no migration was added.
 ADR 0013 remains Proposed. Material deviation requires amended or new architecture
 governance. No later runtime layer is authorized by this implementation.
 
-## Pending Execution Attempt Admission Foundation Implementation Authorization
+## Execution Attempt Admission Foundation Implementation Authorization
 
 ADR 0014 — Execution Attempt Admission Foundation was squash-merged through PR #37.
 Its reviewed head was `46fa747d35655fe041ef603e7f026011a934fb03`, and its merge
@@ -523,12 +523,18 @@ Review Gate recorded **PASS**, CI recorded **PASS**, and there were zero blockin
 non-blocking findings. ADR 0014 remains Proposed. Merging ADR 0014 did **not**
 authorize implementation.
 
-This section is a governance authorization candidate. It does **not currently
-authorize implementation**. Branch creation, commit creation, push, a Draft PR, CI
-PASS, Governance Review Gate PASS, a Ready-for-Review transition, comments, and
-review activity are all non-authorizing. Authorization becomes effective only if
-and when this governance authorization PR is successfully merged into `main`.
-Until then, Execution Attempt implementation remains unauthorized and absent.
+The documentation-only implementation authorization package was reviewed at
+`38ee350e0cae0fb3b727a96c1e69985bf6127122`, passed its Governance Review Gate
+with **PASS**, and was squash-merged through PR #38 at
+`06d337002ef09301fe0006c9d11947086f6c4fde`. Authorization became effective only
+after that successful merge into `main`; branch, commit, push, PR, CI, review,
+Ready-for-Review, and comment states before merge were non-authorizing.
+
+Execution Attempt Admission Foundation implementation authorization is now
+**EFFECTIVE**, with effective implementation baseline
+`06d337002ef09301fe0006c9d11947086f6c4fde`. ADR 0014 remains Proposed.
+Implementation has **NOT STARTED**, and `app/runtime/execution_attempt` is absent at
+this reconciliation baseline.
 
 After that merge, authorization is limited to the immutable Execution Attempt
 Admission Foundation defined by ADR 0014:
